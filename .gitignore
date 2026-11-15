@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+.env
+.env.*
+
+# Reflex
+.web/
+*.db
+.states/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# ML / data
+*.ckpt
+*.pt
+*.bin
+*.faiss
+*.index
+data/
+models/
+*.log
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Test / coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage

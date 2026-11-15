@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScholarLens · 可溯源的学术深度研究引擎 · PRD & 技术实现文档</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0c11;--bg2:#0e1118;--surface:#12161f;--surface2:#171c27;
+  --line:rgba(255,255,255,.07);--line2:rgba(255,255,255,.12);
+  --text:#e7e9ef;--muted:#98a1b3;--dim:#6b7385;
+  --a1:#8b6cff;--a2:#22d3ee;--a3:#f5c66b;--ok:#34d399;--warn:#fbbf24;--bad:#f87171;
+  --grad:linear-gradient(120deg,#8b6cff 0%,#4f8cff 45%,#22d3ee 100%);
+  --sans:"Inter","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --serif:"Noto Serif SC","Songti SC",serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.75;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(900px 500px at 85% -10%,rgba(139,108,255,.16),transparent 60%),
+             radial-gradient(700px 400px at 10% 110%,rgba(34,211,238,.10),transparent 60%);}
+a{color:var(--a2);text-decoration:none}
+/* ---------- sidebar ---------- */
+.side{position:fixed;top:0;left:0;bottom:0;width:272px;padding:28px 22px;border-right:1px solid var(--line);
+  background:rgba(10,12,17,.82);backdrop-filter:blur(14px);overflow-y:auto;z-index:10}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;letter-spacing:.2px;margin-bottom:6px}
+.logo i{width:30px;height:30px;border-radius:9px;background:var(--grad);display:grid;place-items:center;font-style:normal;font-size:15px;color:#0a0c11;box-shadow:0 6px 24px rgba(139,108,255,.45)}
+.side .ver{font-size:12px;color:var(--dim);margin-bottom:26px;font-family:var(--mono)}
+.side h6{font-size:11px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin:22px 0 8px;font-weight:600}
+.side a{display:flex;gap:10px;font-size:13.5px;color:var(--muted);padding:6px 10px;border-radius:8px;transition:.2s}
+.side a span{font-family:var(--mono);font-size:11.5px;color:var(--dim);min-width:20px;padding-top:2px}
+.side a:hover{background:var(--surface);color:var(--text)}
+/* ---------- main ---------- */
+main{position:relative;z-index:1;margin-left:272px;padding:0 64px 120px}
+.wrap{max-width:1020px;margin:0 auto}
+.hero{padding:96px 0 72px;border-bottom:1px solid var(--line);margin-bottom:24px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;color:var(--a2);
+  border:1px solid rgba(34,211,238,.25);background:rgba(34,211,238,.06);padding:5px 12px;border-radius:99px;margin-bottom:28px}
+.eyebrow b{width:6px;height:6px;border-radius:50%;background:var(--a2);box-shadow:0 0 10px var(--a2)}
+.hero h1{font-family:var(--serif);font-size:62px;line-height:1.12;font-weight:900;letter-spacing:-1px}
+.hero h1 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero .sub{font-size:19px;color:var(--muted);max-width:720px;margin:22px 0 40px}
+.meta{display:flex;flex-wrap:wrap;gap:28px;font-size:13px;color:var(--dim)}
+.meta div b{display:block;color:var(--text);font-weight:600;font-size:14px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:48px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 22px;position:relative;overflow:hidden}
+.kpi::after{content:"";position:absolute;inset:0 0 auto 0;height:2px;background:var(--grad);opacity:.8}
+.kpi .n{font-size:30px;font-weight:800;letter-spacing:-.5px}
+.kpi .l{font-size:12.5px;color:var(--muted)}
+/* ---------- sections ---------- */
+.part{margin:96px 0 8px;display:flex;align-items:center;gap:16px;font-family:var(--mono);font-size:12px;letter-spacing:3px;color:var(--a3);text-transform:uppercase}
+.part::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(245,198,107,.4),transparent)}
+section{padding:56px 0 8px;scroll-margin-top:20px}
+h2{font-family:var(--serif);font-size:32px;font-weight:700;letter-spacing:-.3px;margin-bottom:10px;display:flex;align-items:baseline;gap:14px}
+h2 .no{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--a1);border:1px solid rgba(139,108,255,.35);padding:2px 9px;border-radius:7px}
+.lead{color:var(--muted);font-size:16px;margin-bottom:28px;max-width:820px}
+h3{font-size:18px;font-weight:700;margin:34px 0 12px;display:flex;align-items:center;gap:10px}
+h3::before{content:"";width:4px;height:18px;border-radius:2px;background:var(--grad)}
+p{margin:10px 0;color:#cfd3dc}
+ul.dot{list-style:none;margin:10px 0}
+ul.dot li{position:relative;padding-left:20px;margin:7px 0;color:#cfd3dc}
+ul.dot li::before{content:"";position:absolute;left:3px;top:11px;width:6px;height:6px;border-radius:50%;background:var(--a2)}
+strong{color:#fff;font-weight:600}
+code{font-family:var(--mono);font-size:12.5px;background:rgba(139,108,255,.12);color:#c9bbff;padding:1px 6px;border-radius:5px}
+/* ---------- components ---------- */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.card{background:linear-gradient(180deg,var(--surface2),var(--surface));border:1px solid var(--line);border-radius:16px;padding:22px 24px;transition:.25s}
+.card:hover{border-color:var(--line2);transform:translateY(-2px)}
+.card h4{font-size:15.5px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card p,.card li{font-size:13.8px;color:var(--muted)}
+.card .ico{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-size:17px;margin-bottom:14px;
+  background:rgba(139,108,255,.12);border:1px solid rgba(139,108,255,.25)}
+.tag{font-family:var(--mono);font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:6px;letter-spacing:.5px}
+.p0{background:rgba(248,113,113,.12);color:#fca5a5;border:1px solid rgba(248,113,113,.3)}
+.p1{background:rgba(251,191,36,.10);color:#fcd34d;border:1px solid rgba(251,191,36,.3)}
+.p2{background:rgba(52,211,153,.10);color:#6ee7b7;border:1px solid rgba(52,211,153,.3)}
+.hl{background:rgba(34,211,238,.10);color:#67e8f9;border:1px solid rgba(34,211,238,.3)}
+.callout{border:1px solid rgba(245,198,107,.28);background:linear-gradient(90deg,rgba(245,198,107,.08),rgba(245,198,107,.02));
+  border-radius:14px;padding:16px 20px;margin:20px 0;font-size:14px;color:#e9dcc0}
+.callout b{color:var(--a3)}
+.callout.blue{border-color:rgba(34,211,238,.28);background:linear-gradient(90deg,rgba(34,211,238,.08),rgba(34,211,238,.02));color:#cdeef5}
+.callout.blue b{color:var(--a2)}
+table{width:100%;border-collapse:separate;border-spacing:0;margin:16px 0;font-size:13.5px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+th{background:var(--surface2);text-align:left;font-weight:600;color:var(--muted);font-size:12px;letter-spacing:.5px;padding:11px 14px;border-bottom:1px solid var(--line)}
+td{padding:11px 14px;border-bottom:1px solid var(--line);color:#cfd3dc;vertical-align:top}
+tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:rgba(255,255,255,.02)}
+td.num{font-family:var(--mono);color:var(--a2)}
+pre{background:#07090d;border:1px solid var(--line);border-radius:14px;padding:18px 20px;overflow-x:auto;margin:16px 0;position:relative}
+pre code{background:none;color:#c8cfdc;padding:0;font-size:12.8px;line-height:1.7}
+pre .fn{position:absolute;top:10px;right:14px;font-family:var(--mono);font-size:10.5px;color:var(--dim)}
+.k{color:#c792ea}.s{color:#c3e88d}.c{color:#5c6773;font-style:italic}.f{color:#82aaff}.t{color:#ffcb6b}
+/* ---------- diagrams ---------- */
+.diagram{background:#07090d;border:1px solid var(--line);border-radius:18px;padding:26px;margin:20px 0;overflow-x:auto}
+.diagram svg{display:block;width:100%;height:auto;min-width:760px}
+.cap{font-size:12.5px;color:var(--dim);text-align:center;margin-top:10px}
+.flow{display:flex;align-items:stretch;gap:0;margin:20px 0;flex-wrap:wrap}
+.step{flex:1;min-width:150px;background:var(--surface);border:1px solid var(--line);padding:16px;position:relative}
+.step:first-child{border-radius:14px 0 0 14px}.step:last-child{border-radius:0 14px 14px 0}
+.step+.step{border-left:0}
+.step .i{font-family:var(--mono);font-size:11px;color:var(--a1)}
+.step b{display:block;font-size:14px;margin:4px 0}
+.step small{font-size:12.5px;color:var(--muted);line-height:1.55;display:block}
+/* ---------- mock ui ---------- */
+.mock{border:1px solid var(--line2);border-radius:16px;overflow:hidden;margin:20px 0;background:#0b0e14;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.mock .bar{height:38px;background:#11151d;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:7px;padding:0 14px}
+.mock .bar i{width:11px;height:11px;border-radius:50%;background:#3a3f4b}
+.mock .bar i:nth-child(1){background:#ff5f57}.mock .bar i:nth-child(2){background:#febc2e}.mock .bar i:nth-child(3){background:#28c840}
+.mock .bar span{margin-left:14px;font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+.mock .body{display:grid;grid-template-columns:190px 1fr 300px;min-height:400px;font-size:12.5px}
+.mock .col{padding:16px;border-right:1px solid var(--line)}
+.mock .col:last-child{border-right:0}
+.mock .lbl{font-size:10.5px;color:var(--dim);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px}
+.mock .item{padding:7px 9px;border-radius:7px;color:var(--muted);margin-bottom:4px}
+.mock .item.on{background:rgba(139,108,255,.14);color:#fff}
+.mock .q{background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:14px;color:#fff}
+.mock .ans{color:#cfd3dc;line-height:1.8}
+.mock sup{font-family:var(--mono);font-size:9.5px;background:rgba(34,211,238,.15);color:var(--a2);padding:1px 5px;border-radius:4px;margin:0 1px}
+.mock .trace{font-family:var(--mono);font-size:11px;color:var(--muted);border-left:2px solid var(--line2);padding-left:10px;margin:6px 0}
+.mock .trace.ok{border-color:var(--ok)}.mock .trace.run{border-color:var(--a2)}
+.mock .src{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin-bottom:8px}
+.mock .src b{color:#fff;font-size:12px;display:block}
+.mock .src em{font-style:normal;color:var(--dim);font-size:11px}
+.mock .bbox{background:rgba(245,198,107,.18);border-bottom:1px solid var(--a3);color:#f3e2b8}
+.bar2{height:6px;border-radius:3px;background:var(--surface2);overflow:hidden;margin-top:6px}
+.bar2 i{display:block;height:100%;background:var(--grad)}
+/* ---------- timeline ---------- */
+.tl{position:relative;margin:20px 0 0 8px;padding-left:28px;border-left:1px dashed var(--line2)}
+.tl .m{position:relative;margin-bottom:24px}
+.tl .m::before{content:"";position:absolute;left:-35px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--bg);border:2px solid var(--a1);box-shadow:0 0 12px rgba(139,108,255,.6)}
+.tl .m h4{font-size:15px}
+.tl .m .w{font-family:var(--mono);font-size:11.5px;color:var(--a2)}
+.tl .m p{font-size:13.8px;color:var(--muted);margin:4px 0}
+footer{margin-top:100px;padding-top:30px;border-top:1px solid var(--line);color:var(--dim);font-size:12.5px;display:flex;justify-content:space-between}
+@media (max-width:1100px){.side{display:none}main{margin-left:0;padding:0 24px 80px}.kpis,.g3{grid-template-columns:1fr 1fr}.hero h1{font-size:44px}.mock .body{grid-template-columns:1fr}}
+@media print{.side{display:none}main{margin:0}body::before{display:none}}
+</style>
+</head>
+<body>
+
+<nav class="side">
+  <div class="logo"><i>◈</i>ScholarLens</div>
+  <div class="ver">PRD + TDD · v1.0 · 2026-11</div>
+  <h6>Part I · 产品需求</h6>
+  <a href="#overview"><span>01</span>项目概述</a>
+  <a href="#users"><span>02</span>目标用户与场景</a>
+  <a href="#features"><span>03</span>功能需求</a>
+  <a href="#ui"><span>04</span>交互与页面</a>
+  <a href="#nfr"><span>05</span>非功能需求与指标</a>
+  <h6>Part II · 技术实现</h6>
+  <a href="#arch"><span>06</span>系统架构</a>
+  <a href="#ingest"><span>07</span>文档解析流水线</a>
+  <a href="#index"><span>08</span>多粒度索引</a>
+  <a href="#retrieval"><span>09</span>混合检索与重排</a>
+  <a href="#agent"><span>10</span>深度研究 Agent</a>
+  <a href="#cite"><span>11</span>引用校验与反幻觉</a>
+  <a href="#eval"><span>12</span>评测体系</a>
+  <a href="#stack"><span>13</span>技术栈与工程</a>
+  <h6>Part III · 交付</h6>
+  <a href="#plan"><span>14</span>里程碑</a>
+  <a href="#risk"><span>15</span>风险与对策</a>
+  <a href="#interview"><span>16</span>面试亮点</a>
+</nav>
+
+<main><div class="wrap">
+<header class="hero">
+  <div class="eyebrow"><b></b>Product Requirements & Technical Design</div>
+  <h1>ScholarLens<br><em>可溯源的学术深度研究引擎</em></h1>
+  <p class="sub">面向科研人员的多文档 RAG 系统。它能解析论文 PDF 中的公式、表格和图注，沿引用网络做多跳检索，生成有据可查的研究综述。综述里的每一句结论都能追溯到原文的具体位置。</p>
+  <div class="meta">
+    <div><b>Python 3.12 全栈</b>后端 FastAPI · 前端 Reflex</div>
+    <div><b>Agentic RAG</b>LangGraph 状态机编排</div>
+    <div><b>句级溯源</b>引用精确到页码和坐标框</div>
+    <div><b>可量化</b>在公开基准上评测</div>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><div class="n">≥ 0.85</div><div class="l">Recall@10（QASPER 证据段）</div></div>
+    <div class="kpi"><div class="n">≥ 0.90</div><div class="l">引用准确率（Citation Precision）</div></div>
+    <div class="kpi"><div class="n">&lt; 1.5s</div><div class="l">快速问答首 token 时延 P95</div></div>
+    <div class="kpi"><div class="n">10k+</div><div class="l">论文库规模（约 200 万 chunk）</div></div>
+  </div>
+  <p style="font-size:12px;color:var(--dim);margin-top:14px">注：以上为设计目标值，以第 12 章评测框架的实测数据为准。</p>
+</header>
+
+<div class="part">Part I · 产品需求 PRD</div>
+
+<section id="overview">
+  <h2><span class="no">01</span>项目概述</h2>
+  <p class="lead">通用 RAG 处理学术文献时会出现三类问题。ScholarLens 针对这三类问题设计。</p>
+  <div class="g3">
+    <div class="card"><div class="ico">∑</div><h4>解析失真</h4><p>论文里双栏排版、LaTeX 公式、跨页表格和图注很常见。用 PyPDF 提取会出现串栏、公式乱码、表格结构丢失，后续检索得不到正确内容。</p></div>
+    <div class="card"><div class="ico">⟲</div><h4>单跳检索不够</h4><p>"方法 A 和后续改进方法 B 在长文本上表现有何差异"这类问题，需要跨多篇论文、沿引用关系逐步取证。一次 Top-K 检索覆盖不了。</p></div>
+    <div class="card"><div class="ico">✓</div><h4>引用不可信</h4><p>LLM 常编造论文标题，或者把 A 论文的结论标到 B 论文上。研究人员必须逐条核对，节省的时间所剩无几。</p></div>
+  </div>
+  <h3>产品定位</h3>
+  <p>一句话：<strong>帮研究人员在一个可信的私有论文库上，用 10 分钟完成过去需要 2 天的文献调研。</strong></p>
+  <h3>项目目标</h3>
+  <table>
+    <thead><tr><th>维度</th><th>目标</th><th>衡量方式</th></tr></thead>
+    <tbody>
+      <tr><td>检索质量</td><td>证据段召回率比朴素向量检索提升 25% 以上</td><td>QASPER evidence Recall@10，消融实验</td></tr>
+      <tr><td>答案可信</td><td>引用准确率 ≥ 0.90，无据结论占比 &lt; 5%</td><td>NLI 自动校验 + 200 条人工抽检</td></tr>
+      <tr><td>研究效率</td><td>生成一篇 3000 字综述 &lt; 3 分钟</td><td>端到端计时，LangSmith / Langfuse trace</td></tr>
+      <tr><td>工程质量</td><td>可一键部署、可观测、可复现评测</td><td>docker compose up，评测脚本接入 CI</td></tr>
+    </tbody>
+  </table>
+  <h3>不做什么（Non-Goals）</h3>
+  <ul class="dot">
+    <li>不训练基座模型；只在 Embedding 和 Reranker 上做可选的领域微调。</li>
+    <li>不做论文写作或润色，系统只负责"找到证据并组织证据"。</li>
+    <li>v1 不支持多租户计费，鉴权只做单组织的 RBAC。</li>
+  </ul>
+</section>
+
+<section id="users">
+  <h2><span class="no">02</span>目标用户与场景</h2>
+  <p class="lead">主要用户是需要大量阅读文献的研究人员，按使用深度分为三类。</p>
+  <div class="g3">
+    <div class="card"><h4>◆ 研究生</h4><p><strong>痛点：</strong>刚进入新方向，不知道该读哪些论文，读完也很难串成脉络。</p><p><strong>核心场景：</strong>"给我梳理 RAG 中 Reranker 技术从 2020 年到现在的演进。"</p></div>
+    <div class="card"><h4>◆ 课题组 / 实验室</h4><p><strong>痛点：</strong>组内共享论文库零散，新人反复问同样的问题。</p><p><strong>核心场景：</strong>共享知识库，按项目分 collection，查询"组里哪些论文用过 LoRA 在医学数据上做微调"。</p></div>
+    <div class="card"><h4>◆ 企业研究院</h4><p><strong>痛点：</strong>技术选型要做竞品方法对比，结论必须有出处。</p><p><strong>核心场景：</strong>"对比 5 种长上下文方法在 LongBench 上的结果"，系统输出对比表格并为每个数字标注来源。</p></div>
+  </div>
+  <h3>用户故事</h3>
+  <table>
+    <thead><tr><th style="width:90px">编号</th><th>作为…</th><th>我希望…</th><th>以便…</th></tr></thead>
+    <tbody>
+      <tr><td class="num">US-01</td><td>研究生</td><td>拖入 50 篇 PDF 后自动完成解析和建库</td><td>不用手动整理文献</td></tr>
+      <tr><td class="num">US-02</td><td>研究者</td><td>点击答案里的引用角标就跳到 PDF 原文并高亮对应段落</td><td>10 秒内核对结论</td></tr>
+      <tr><td class="num">US-03</td><td>研究者</td><td>提出开放问题后看到 Agent 的研究计划和每一步检索过程</td><td>判断系统的思路是否靠谱，必要时手动调整</td></tr>
+      <tr><td class="num">US-04</td><td>研究者</td><td>就表格里的实验数据提问，比如"哪个方法在 NQ 上 EM 最高"</td><td>直接拿到数值结论</td></tr>
+      <tr><td class="num">US-05</td><td>课题组长</td><td>查看某篇论文的引用图谱，以及它被哪些后续工作改进</td><td>把握方向的演进脉络</td></tr>
+      <tr><td class="num">US-06</td><td>研究者</td><td>把综述导出为 Markdown / LaTeX，附带 BibTeX</td><td>直接用于论文的 Related Work 部分</td></tr>
+    </tbody>
+  </table>
+</section>
+<section id="features">
+  <h2><span class="no">03</span>功能需求</h2>
+  <p class="lead">功能按优先级分为三档：P0 是 MVP 必须完成的，P1 是体现技术深度的核心亮点，P2 是加分项。</p>
+  <div class="g2">
+    <div class="card"><h4>F1 · 文献导入与解析 <span class="tag p0">P0</span></h4><ul class="dot">
+      <li>支持 PDF 批量上传、arXiv ID / DOI 导入，并按 SHA-256 去重</li>
+      <li>版面分析：识别标题、章节、段落、公式、表格、图注和参考文献</li>
+      <li>公式转为 LaTeX，表格转为 Markdown / HTML，保留每个元素的页码和坐标框</li>
+      <li>解析进度通过 SSE 实时推送，失败的文件可以重试</li></ul></div>
+    <div class="card"><h4>F2 · 快速问答 <span class="tag p0">P0</span></h4><ul class="dot">
+      <li>单轮或多轮问答，流式输出</li>
+      <li>答案中每个论断后都带 <code>[n]</code> 角标，悬停显示原文片段</li>
+      <li>可按 collection、年份、作者、会议过滤</li>
+      <li>证据不足时明确拒答，不编造</li></ul></div>
+    <div class="card"><h4>F3 · 深度研究模式 <span class="tag p1">P1 · 亮点</span></h4><ul class="dot">
+      <li>Agent 先生成研究计划（子问题树），用户可以编辑后再执行</li>
+      <li>多轮迭代：检索、阅读、反思、补检索，直到证据充分</li>
+      <li>输出带章节结构的综述，并附对比表格</li>
+      <li>研究过程可视化：每一步的工具调用、耗时和召回结果</li></ul></div>
+    <div class="card"><h4>F4 · 句级引用校验 <span class="tag p1">P1 · 亮点</span></h4><ul class="dot">
+      <li>生成后用 NLI 模型逐句校验"引用片段是否蕴含该句"</li>
+      <li>未通过校验的句子先自动重写，仍不通过则标红提示</li>
+      <li>每个答案给出可信度评分，比如"92% 的论断有直接证据"</li></ul></div>
+    <div class="card"><h4>F5 · 表格与数值问答 <span class="tag p1">P1</span></h4><ul class="dot">
+      <li>实验结果表格结构化存储（方法 × 数据集 × 指标）</li>
+      <li>数值比较类问题先路由到表格检索，再在沙箱中执行 pandas 计算</li>
+      <li>跨论文汇总生成对比表，每个单元格都标注来源</li></ul></div>
+    <div class="card"><h4>F6 · 引用图谱 <span class="tag p1">P1</span></h4><ul class="dot">
+      <li>解析参考文献，与库内论文对齐，构建引用图</li>
+      <li>基于图的扩展检索：从种子论文出发，沿引用 / 被引关系扩展</li>
+      <li>前端提供交互式图谱，节点大小表示库内被引次数</li></ul></div>
+    <div class="card"><h4>F7 · PDF 原文对照阅读 <span class="tag p0">P0</span></h4><ul class="dot">
+      <li>内置 PDF 阅读器，点击引用后跳到对应页并高亮坐标框</li>
+      <li>支持划词提问："解释这个公式"</li></ul></div>
+    <div class="card"><h4>F8 · 导出与评测面板 <span class="tag p2">P2</span></h4><ul class="dot">
+      <li>导出 Markdown / LaTeX / BibTeX</li>
+      <li>管理员可在评测面板查看各版本的检索和生成指标趋势</li>
+      <li>用户的👍/👎反馈进入 bad case 池</li></ul></div>
+  </div>
+</section>
+
+<section id="ui">
+  <h2><span class="no">04</span>交互与页面设计</h2>
+  <p class="lead">主界面分为三栏：左侧是知识库和会话，中间是对话与研究过程，右侧是证据面板和 PDF 原文。设计重点是让用户随时看得到每个结论的依据。</p>
+  <div class="mock">
+    <div class="bar"><i></i><i></i><i></i><span>scholarlens.local / research / long-context-survey</span></div>
+    <div class="body">
+      <div class="col">
+        <div class="lbl">Collections</div>
+        <div class="item on">Long-Context LLM · 128</div>
+        <div class="item">RAG Methods · 342</div>
+        <div class="item">Group Shared · 57</div>
+        <div class="lbl" style="margin-top:20px">Sessions</div>
+        <div class="item">长上下文方法综述</div>
+        <div class="item">Reranker 演进</div>
+        <div class="item">+ 新研究</div>
+      </div>
+      <div class="col">
+        <div class="q">对比 RoPE 外推类方法在 128K 长度下的困惑度与检索准确率，并分析各方法的代价</div>
+        <div class="lbl">Research Trace · 深度研究模式</div>
+        <div class="trace ok">✓ plan · 拆解为 4 个子问题 · 1.2s</div>
+        <div class="trace ok">✓ hybrid_search("Position Interpolation perplexity") · 24 hits · 0.3s</div>
+        <div class="trace ok">✓ table_query(metric="PPL", ctx=128k) · 6 rows · 0.4s</div>
+        <div class="trace ok">✓ citation_expand(seed=YaRN) · +5 papers</div>
+        <div class="trace run">◌ reflect · 证据覆盖 3/4 · 补检索 "NTK-aware cost"</div>
+        <div class="lbl" style="margin-top:16px">Answer</div>
+        <div class="ans">位置插值（PI）通过线性压缩位置索引实现外推，但需要少量微调<sup>1</sup>。YaRN 在此基础上按频率分段插值，在 128K 长度上取得更低的困惑度<sup>2</sup>，<span class="bbox">并且只需约 0.1% 的预训练数据量完成微调</span><sup>2</sup>。NTK-aware 方法无需微调即可外推，但在超过 4 倍训练长度时性能下降明显<sup>3</sup>……</div>
+        <div style="margin-top:12px;font-size:11px;color:var(--ok)">● 引用校验通过 11/12 · 可信度 92%</div>
+      </div>
+      <div class="col">
+        <div class="lbl">Evidence</div>
+        <div class="src"><b>[2] YaRN: Efficient Context Window Extension</b><em>Peng et al. · 2023 · p.6 · Table 3</em><div class="bar2"><i style="width:94%"></i></div></div>
+        <div class="src"><b>[1] Extending Context Window via Position Interpolation</b><em>Chen et al. · 2023 · p.4 · §3.1</em><div class="bar2"><i style="width:88%"></i></div></div>
+        <div class="src"><b>[3] NTK-Aware Scaled RoPE</b><em>· p.2 · Figure 1</em><div class="bar2"><i style="width:71%"></i></div></div>
+        <div class="lbl" style="margin-top:16px">PDF Preview · p.6</div>
+        <div style="height:120px;border:1px solid var(--line);border-radius:8px;background:repeating-linear-gradient(180deg,#151a24 0 8px,transparent 8px 16px);position:relative">
+          <div style="position:absolute;left:14px;right:30px;top:40px;height:26px;border:1.5px solid var(--a3);background:rgba(245,198,107,.15);border-radius:3px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="cap">图 4-1 · 深度研究模式主界面线框图（高亮部分演示"句子到原文坐标框"的溯源）</p>
+  <h3>页面清单</h3>
+  <table>
+    <thead><tr><th>页面</th><th>核心组件</th><th>关键交互</th></tr></thead>
+    <tbody>
+      <tr><td>知识库管理</td><td>拖拽上传区、解析进度队列、论文元数据表格</td><td>SSE 进度条；点击某篇论文可查看解析结果（版面分块可视化）</td></tr>
+      <tr><td>问答 / 深度研究</td><td>三栏布局、研究计划编辑器、Trace 时间线</td><td>流式输出；研究计划确认后再执行（human-in-the-loop）</td></tr>
+      <tr><td>PDF 阅读器</td><td>PDF.js 渲染，叠加 bbox 高亮层</td><td>引用角标与原文双向跳转，支持划词提问</td></tr>
+      <tr><td>引用图谱</td><td>力导向图（ECharts graph）</td><td>点击节点查看摘要，可框选节点作为检索范围</td></tr>
+      <tr><td>评测看板</td><td>指标趋势折线图、消融实验对比、bad case 列表</td><td>选择两个版本做 diff 对比</td></tr>
+    </tbody>
+  </table>
+</section>
+<section id="nfr">
+  <h2><span class="no">05</span>非功能需求与成功指标</h2>
+  <div class="g2">
+    <div>
+      <h3>性能</h3>
+      <table><tbody>
+        <tr><td>快速问答首 token 时延</td><td class="num">P95 &lt; 1.5s</td></tr>
+        <tr><td>混合检索 + 重排（不含 LLM）</td><td class="num">P95 &lt; 400ms</td></tr>
+        <tr><td>单篇论文解析（GPU）</td><td class="num">&lt; 20s / 篇</td></tr>
+        <tr><td>深度研究（3000 字综述）</td><td class="num">&lt; 3 min</td></tr>
+        <tr><td>并发会话</td><td class="num">≥ 50</td></tr>
+      </tbody></table>
+    </div>
+    <div>
+      <h3>质量</h3>
+      <table><tbody>
+        <tr><td>证据召回 Recall@10</td><td class="num">≥ 0.85</td></tr>
+        <tr><td>Answer F1（QASPER）</td><td class="num">≥ 基线 +10pt</td></tr>
+        <tr><td>Faithfulness（RAGAS）</td><td class="num">≥ 0.90</td></tr>
+        <tr><td>Citation Precision / Recall</td><td class="num">≥ 0.90 / 0.80</td></tr>
+        <tr><td>证据不足时的拒答正确率</td><td class="num">≥ 0.85</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <h3>其他要求</h3>
+  <ul class="dot">
+    <li><strong>可观测性：</strong>每次请求都有完整 trace（检索、重排、生成、校验各阶段的耗时、token 数和成本），用 Langfuse 自托管。</li>
+    <li><strong>可复现性：</strong>评测数据集、Prompt 和模型版本统一做版本管理，每次评测结果写入 <code>eval_runs</code> 表。</li>
+    <li><strong>安全：</strong>上传文件做类型和大小校验；表格计算在受限沙箱执行；API 用 JWT 鉴权；按 collection 做权限隔离。</li>
+    <li><strong>模型可替换：</strong>LLM 通过 LiteLLM 统一接入，可在 Claude / Qwen / DeepSeek / 本地 vLLM 之间切换。</li>
+  </ul>
+</section>
+
+<div class="part">Part II · 技术实现 TDD</div>
+
+<section id="arch">
+  <h2><span class="no">06</span>系统架构</h2>
+  <p class="lead">系统分为离线和在线两部分。离线的 Ingestion 流水线由 Celery worker 异步处理；在线的 Query 流程由 FastAPI 提供服务，LangGraph 负责编排 Agent。前端用 Reflex 编写，全部是 Python 代码。</p>
+  <div class="diagram">
+  <svg viewBox="0 0 960 520" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+    <defs>
+      <linearGradient id="gA" x1="0" x2="1"><stop offset="0" stop-color="#8b6cff"/><stop offset="1" stop-color="#22d3ee"/></linearGradient>
+      <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5b6478"/></marker>
+    </defs>
+    <!-- layer: frontend -->
+    <rect x="10" y="10" width="940" height="74" rx="14" fill="#11151d" stroke="#2a3040"/>
+    <text x="28" y="34" fill="#6b7385" font-size="11" letter-spacing="2">PRESENTATION</text>
+    <rect x="28" y="44" width="250" height="30" rx="8" fill="#171c27" stroke="#8b6cff"/><text x="153" y="64" fill="#e7e9ef" font-size="12.5" text-anchor="middle">Reflex Web App（Python → React）</text>
+    <rect x="292" y="44" width="150" height="30" rx="8" fill="#171c27" stroke="#2a3040"/><text x="367" y="64" fill="#cfd3dc" font-size="12" text-anchor="middle">PDF.js + bbox 高亮</text>
+    <rect x="456" y="44" width="150" height="30" rx="8" fill="#171c27" stroke="#2a3040"/><text x="531" y="64" fill="#cfd3dc" font-size="12" text-anchor="middle">ECharts 引用图谱</text>
+    <rect x="620" y="44" width="150" height="30" rx="8" fill="#171c27" stroke="#2a3040"/><text x="695" y="64" fill="#cfd3dc" font-size="12" text-anchor="middle">SSE 流式渲染</text>
+    <rect x="784" y="44" width="150" height="30" rx="8" fill="#171c27" stroke="#2a3040"/><text x="859" y="64" fill="#cfd3dc" font-size="12" text-anchor="middle">评测看板</text>
+    <line x1="480" y1="84" x2="480" y2="108" stroke="#5b6478" marker-end="url(#ar)"/>
+    <!-- api -->
+    <rect x="10" y="110" width="940" height="56" rx="14" fill="#11151d" stroke="#2a3040"/>
+    <text x="28" y="132" fill="#6b7385" font-size="11" letter-spacing="2">API GATEWAY</text>
+    <text x="480" y="148" fill="#e7e9ef" font-size="13" text-anchor="middle">FastAPI · JWT 鉴权 · 限流 · /ingest  /query  /research(SSE)  /papers  /eval</text>
+    <line x1="250" y1="166" x2="250" y2="194" stroke="#5b6478" marker-end="url(#ar)"/>
+    <line x1="710" y1="166" x2="710" y2="194" stroke="#5b6478" marker-end="url(#ar)"/>
+    <!-- offline -->
+    <rect x="10" y="196" width="460" height="196" rx="14" fill="#0e1118" stroke="#f5c66b" stroke-opacity=".45" stroke-dasharray="5 4"/>
+    <text x="28" y="220" fill="#f5c66b" font-size="11" letter-spacing="2">OFFLINE · INGESTION（Celery + Redis）</text>
+    <g font-size="12" fill="#cfd3dc" text-anchor="middle">
+      <rect x="28" y="234" width="130" height="44" rx="9" fill="#171c27" stroke="#2a3040"/><text x="93" y="253">版面解析</text><text x="93" y="269" fill="#6b7385" font-size="10.5">MinerU / Nougat</text>
+      <rect x="170" y="234" width="130" height="44" rx="9" fill="#171c27" stroke="#2a3040"/><text x="235" y="253">结构化抽取</text><text x="235" y="269" fill="#6b7385" font-size="10.5">公式 / 表格 / 图注</text>
+      <rect x="312" y="234" width="140" height="44" rx="9" fill="#171c27" stroke="#2a3040"/><text x="382" y="253">层级切分</text><text x="382" y="269" fill="#6b7385" font-size="10.5">Section → Para → Sent</text>
+      <rect x="28" y="296" width="130" height="44" rx="9" fill="#171c27" stroke="#2a3040"/><text x="93" y="315">元数据补全</text><text x="93" y="331" fill="#6b7385" font-size="10.5">Semantic Scholar</text>
+      <rect x="170" y="296" width="130" height="44" rx="9" fill="#171c27" stroke="#2a3040"/><text x="235" y="315">引用对齐</text><text x="235" y="331" fill="#6b7385" font-size="10.5">GROBID + 模糊匹配</text>
+      <rect x="312" y="296" width="140" height="44" rx="9" fill="#171c27" stroke="#2a3040"/><text x="382" y="315">Embedding</text><text x="382" y="331" fill="#6b7385" font-size="10.5">BGE-M3 dense+sparse</text>
+    </g>
+    <path d="M158 256 H168 M300 256 H310 M382 278 V294" stroke="#5b6478" marker-end="url(#ar)" fill="none"/>
+    <text x="240" y="374" fill="#6b7385" font-size="11" text-anchor="middle">按文件 SHA-256 实现幂等 · 失败重试 · 每阶段产物落 MinIO</text>
+    <!-- online -->
+    <rect x="490" y="196" width="460" height="196" rx="14" fill="#0e1118" stroke="#8b6cff" stroke-opacity=".55"/>
+    <text x="508" y="220" fill="#a995ff" font-size="11" letter-spacing="2">ONLINE · QUERY（LangGraph）</text>
+    <g font-size="12" fill="#cfd3dc" text-anchor="middle">
+      <rect x="508" y="234" width="130" height="44" rx="9" fill="#171c27" stroke="#2a3040"/><text x="573" y="253">Query 理解</text><text x="573" y="269" fill="#6b7385" font-size="10.5">路由 / 改写 / 分解</text>
+      <rect x="650" y="234" width="130" height="44" rx="9" fill="#171c27" stroke="#2a3040"/><text x="715" y="253">混合检索</text><text x="715" y="269" fill="#6b7385" font-size="10.5">Dense+Sparse+Graph</text>
+      <rect x="792" y="234" width="140" height="44" rx="9" fill="#171c27" stroke="#2a3040"/><text x="862" y="253">重排 + 压缩</text><text x="862" y="269" fill="#6b7385" font-size="10.5">bge-reranker-v2</text>
+      <rect x="508" y="296" width="130" height="44" rx="9" fill="#171c27" stroke="#2a3040"/><text x="573" y="315">研究 Agent</text><text x="573" y="331" fill="#6b7385" font-size="10.5">Plan→Act→Reflect</text>
+      <rect x="650" y="296" width="130" height="44" rx="9" fill="#171c27" stroke="#2a3040"/><text x="715" y="315">带引用生成</text><text x="715" y="331" fill="#6b7385" font-size="10.5">LiteLLM 多模型</text>
+      <rect x="792" y="296" width="140" height="44" rx="9" fill="url(#gA)" fill-opacity=".18" stroke="#22d3ee"/><text x="862" y="315" fill="#fff">引用校验</text><text x="862" y="331" fill="#67e8f9" font-size="10.5">NLI 逐句蕴含判定</text>
+    </g>
+    <path d="M638 256 H648 M780 256 H790 M862 278 V286 H573 V294 M638 318 H648 M780 318 H790" stroke="#5b6478" marker-end="url(#ar)" fill="none"/>
+    <text x="720" y="374" fill="#6b7385" font-size="11" text-anchor="middle">校验失败时回到生成节点重写 · 证据不足时回到 Agent 补检索</text>
+    <!-- storage -->
+    <line x1="240" y1="392" x2="240" y2="420" stroke="#5b6478" marker-end="url(#ar)"/>
+    <line x1="720" y1="392" x2="720" y2="420" stroke="#5b6478" marker-end="url(#ar)"/>
+    <rect x="10" y="422" width="940" height="88" rx="14" fill="#11151d" stroke="#2a3040"/>
+    <text x="28" y="444" fill="#6b7385" font-size="11" letter-spacing="2">STORAGE</text>
+    <g font-size="12" text-anchor="middle" fill="#e7e9ef">
+      <rect x="28" y="454" width="170" height="42" rx="9" fill="#171c27" stroke="#22d3ee" stroke-opacity=".5"/><text x="113" y="472">Qdrant</text><text x="113" y="488" fill="#6b7385" font-size="10.5">dense + sparse 向量</text>
+      <rect x="212" y="454" width="170" height="42" rx="9" fill="#171c27" stroke="#2a3040"/><text x="297" y="472">PostgreSQL</text><text x="297" y="488" fill="#6b7385" font-size="10.5">元数据 / 表格 / 会话</text>
+      <rect x="396" y="454" width="170" height="42" rx="9" fill="#171c27" stroke="#2a3040"/><text x="481" y="472">Neo4j</text><text x="481" y="488" fill="#6b7385" font-size="10.5">引用图 / 概念图</text>
+      <rect x="580" y="454" width="170" height="42" rx="9" fill="#171c27" stroke="#2a3040"/><text x="665" y="472">MinIO</text><text x="665" y="488" fill="#6b7385" font-size="10.5">PDF / 解析产物</text>
+      <rect x="764" y="454" width="170" height="42" rx="9" fill="#171c27" stroke="#2a3040"/><text x="849" y="472">Redis</text><text x="849" y="488" fill="#6b7385" font-size="10.5">任务队列 / 语义缓存</text>
+    </g>
+  </svg>
+  <p class="cap">图 6-1 · ScholarLens 总体架构</p>
+  </div>
+  <h3>关键设计决策</h3>
+  <table>
+    <thead><tr><th>决策点</th><th>选择</th><th>备选</th><th>理由</th></tr></thead>
+    <tbody>
+      <tr><td>向量库</td><td><strong>Qdrant</strong></td><td>Milvus / pgvector</td><td>原生支持 dense + sparse 混合查询和 payload 过滤，单机部署轻量；pgvector 在百万级 chunk 加过滤条件时性能下降</td></tr>
+      <tr><td>Agent 编排</td><td><strong>LangGraph</strong></td><td>手写循环 / CrewAI</td><td>显式状态机，支持中断恢复（human-in-the-loop 编辑研究计划）和 checkpoint 持久化</td></tr>
+      <tr><td>前端</td><td><strong>Reflex</strong></td><td>Streamlit / Gradio</td><td>Streamlit 每次交互都会重跑整个脚本，难以做三栏联动和流式状态；Reflex 编译成 React，支持组件化和 WebSocket 状态同步</td></tr>
+      <tr><td>PDF 解析</td><td><strong>MinerU</strong> + GROBID</td><td>PyMuPDF / Unstructured</td><td>MinerU 对双栏论文、公式（输出 LaTeX）和表格还原效果最好；GROBID 专门负责参考文献结构化</td></tr>
+      <tr><td>Embedding</td><td><strong>BGE-M3</strong></td><td>OpenAI text-embedding-3</td><td>一次前向同时得到 dense 和 sparse 向量，中英文都可用，能私有部署</td></tr>
+    </tbody>
+  </table>
+</section>
+<section id="ingest">
+  <h2><span class="no">07</span>文档解析流水线</h2>
+  <p class="lead">解析质量决定了 RAG 效果的上限。这一章的设计目标是：任何一段文本都能还原到原 PDF 的页码和坐标，公式和表格的语义不在解析中丢失。</p>
+  <div class="flow">
+    <div class="step"><span class="i">STEP 1</span><b>版面检测</b><small>MinerU（基于 LayoutLMv3 / DocLayout-YOLO）把每页切成 block，类型包括 title、text、equation、table、figure、caption、reference</small></div>
+    <div class="step"><span class="i">STEP 2</span><b>阅读顺序</b><small>处理双栏和跨栏图表，按 XY-Cut 排序，生成线性文本流</small></div>
+    <div class="step"><span class="i">STEP 3</span><b>元素识别</b><small>公式用 UniMERNet 识别为 LaTeX；表格用 StructEqTable 识别为 HTML；图像由 VLM 生成描述</small></div>
+    <div class="step"><span class="i">STEP 4</span><b>章节树重建</b><small>根据标题层级、编号规则（3.1 / 3.1.2）和字号，重建 Section 树</small></div>
+    <div class="step"><span class="i">STEP 5</span><b>参考文献</b><small>GROBID 输出 TEI XML，再通过 Semantic Scholar API 对齐到 paperId</small></div>
+  </div>
+  <h3>统一中间表示（Document IR）</h3>
+  <p>所有解析器的输出都归一到同一个 Pydantic 模型。下游模块只依赖这个 IR，因此更换解析器不需要改动下游代码。</p>
+<pre><span class="fn">ingest/schema.py</span><code><span class="k">class</span> <span class="t">BBox</span>(BaseModel):
+    page: <span class="t">int</span>
+    x0: <span class="t">float</span>; y0: <span class="t">float</span>; x1: <span class="t">float</span>; y1: <span class="t">float</span>   <span class="c"># PDF 坐标系，前端用于高亮</span>
+
+<span class="k">class</span> <span class="t">Block</span>(BaseModel):
+    id: <span class="t">str</span>
+    type: Literal[<span class="s">"text"</span>, <span class="s">"equation"</span>, <span class="s">"table"</span>, <span class="s">"figure"</span>, <span class="s">"caption"</span>]
+    content: <span class="t">str</span>                  <span class="c"># 文本 / LaTeX / HTML 表格 / VLM 图像描述</span>
+    bboxes: list[BBox]            <span class="c"># 跨页元素有多个 bbox</span>
+    section_path: list[<span class="t">str</span>]       <span class="c"># ["3 Method", "3.2 Frequency-aware Interpolation"]</span>
+    refs: list[<span class="t">str</span>] = []         <span class="c"># 块内引用的参考文献 key，如 ["chen2023pi"]</span>
+
+<span class="k">class</span> <span class="t">PaperIR</span>(BaseModel):
+    paper_id: <span class="t">str</span>; title: <span class="t">str</span>; authors: list[<span class="t">str</span>]; year: <span class="t">int</span>; venue: <span class="t">str</span> | <span class="k">None</span>
+    abstract: <span class="t">str</span>
+    blocks: list[Block]
+    references: list[Reference]   <span class="c"># 已对齐 S2 paperId 的参考文献</span></code></pre>
+  <div class="callout"><b>难点与对策：</b>公式经常被行内文本打断，比如 "where $\theta_i$ denotes…"。解析时把行内公式以 LaTeX 形式内联到文本中，同时为独立公式生成一句自然语言描述（"该公式定义了频率相关的插值因子"），并把描述一起写入索引。这样用户用自然语言提问时也能检索到公式。</div>
+</section>
+
+<section id="index">
+  <h2><span class="no">08</span>多粒度索引</h2>
+  <p class="lead">学术问题的粒度差别很大。"这篇论文讲了什么"需要论文级的信息，"公式 3 里的 β 是什么"需要句子级的信息。因此系统建立四层索引，并用父子关系把它们关联起来。</p>
+  <table>
+    <thead><tr><th>层级</th><th>单元</th><th>内容来源</th><th>典型问题</th><th>检索用途</th></tr></thead>
+    <tbody>
+      <tr><td><span class="tag hl">L0</span> Paper</td><td>整篇论文</td><td>标题 + 摘要 + LLM 生成的结构化摘要（问题 / 方法 / 结论）</td><td>"有哪些用对比学习做 Reranker 的工作"</td><td>粗筛候选论文</td></tr>
+      <tr><td><span class="tag hl">L1</span> Section</td><td>章节</td><td>按章节生成的摘要（RAPTOR 风格自底向上聚合）</td><td>"YaRN 的实验设置是什么"</td><td>定位相关章节</td></tr>
+      <tr><td><span class="tag hl">L2</span> Chunk</td><td>约 400 token 段落</td><td>按语义边界切分，不跨章节，加上上下文前缀</td><td>大多数事实型问题</td><td>主要召回单元</td></tr>
+      <tr><td><span class="tag hl">L3</span> Element</td><td>表格 / 公式 / 图</td><td>表格行的结构化记录、公式 LaTeX 及其描述、图注</td><td>"哪个方法在 NQ 上 EM 最高"</td><td>数值和公式问答</td></tr>
+    </tbody>
+  </table>
+  <h3>Contextual Chunking</h3>
+  <p>参考 Anthropic 提出的 Contextual Retrieval 方法，入库前为每个 chunk 生成一段 50～100 token 的上下文前缀，把前缀和 chunk 一起做 embedding 和 BM25 索引。例如 chunk 原文是"该方法在 128K 上提升 2.3 个点"，补充前缀后变成"本段出自 YaRN 论文 §5.2 长文本困惑度实验，比较对象为 PI 与 NTK……"。这样能解决 chunk 缺少主语、无法被检索到的问题。前缀生成使用 prompt caching：同一篇论文的全文只需缓存一次，后续每个 chunk 的调用成本大约降低 90%。</p>
+  <h3>表格结构化入库</h3>
+<pre><span class="fn">index/table_extractor.py</span><code><span class="c"># 把实验结果表格解析成 (method, dataset, metric, value) 四元组，写入 Postgres</span>
+<span class="k">async def</span> <span class="f">extract_results</span>(table: Block, paper: PaperIR) -> list[ResultRow]:
+    prompt = TABLE_PROMPT.format(html=table.content, caption=table.caption, section=table.section_path)
+    rows = <span class="k">await</span> llm.structured(prompt, schema=list[ResultRow])   <span class="c"># 约束 JSON 输出</span>
+    <span class="k">for</span> r <span class="k">in</span> rows:
+        r.method = method_normalizer(r.method)     <span class="c"># "YaRN (s=16)" → 归一到实体 "YaRN"</span>
+        r.source = Provenance(paper.paper_id, table.id, table.bboxes)
+    <span class="k">return</span> [r <span class="k">for</span> r <span class="k">in</span> rows <span class="k">if</span> validate_numeric(r, table.content)]  <span class="c"># 数值必须在原表中出现</span></code></pre>
+</section>
+
+<section id="retrieval">
+  <h2><span class="no">09</span>混合检索与重排</h2>
+  <p class="lead">检索链路分为四路召回和两级精排。每个环节都通过消融实验验证收益，没有收益的环节不保留。</p>
+  <div class="diagram">
+  <svg viewBox="0 0 960 250" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif" font-size="12">
+    <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5b6478"/></marker></defs>
+    <rect x="10" y="95" width="120" height="56" rx="10" fill="#171c27" stroke="#8b6cff"/><text x="70" y="119" fill="#fff" text-anchor="middle">用户 Query</text><text x="70" y="137" fill="#6b7385" font-size="10.5" text-anchor="middle">+ 会话历史</text>
+    <rect x="160" y="95" width="130" height="56" rx="10" fill="#171c27" stroke="#2a3040"/><text x="225" y="119" fill="#e7e9ef" text-anchor="middle">Query 处理</text><text x="225" y="137" fill="#6b7385" font-size="10.5" text-anchor="middle">指代消解 · HyDE · 多查询</text>
+    <g text-anchor="middle">
+      <rect x="330" y="14" width="170" height="40" rx="9" fill="#11151d" stroke="#22d3ee" stroke-opacity=".6"/><text x="415" y="38" fill="#e7e9ef">Dense · BGE-M3 · top100</text>
+      <rect x="330" y="68" width="170" height="40" rx="9" fill="#11151d" stroke="#22d3ee" stroke-opacity=".6"/><text x="415" y="92" fill="#e7e9ef">Sparse · BM25/SPLADE · top100</text>
+      <rect x="330" y="122" width="170" height="40" rx="9" fill="#11151d" stroke="#22d3ee" stroke-opacity=".6"/><text x="415" y="146" fill="#e7e9ef">Table SQL · 结构化查询</text>
+      <rect x="330" y="176" width="170" height="40" rx="9" fill="#11151d" stroke="#22d3ee" stroke-opacity=".6"/><text x="415" y="200" fill="#e7e9ef">Graph · 引用图扩展</text>
+    </g>
+    <path d="M290 123 L326 34 M290 123 L326 88 M290 123 L326 142 M290 123 L326 196" stroke="#5b6478" fill="none" marker-end="url(#ar2)"/>
+    <rect x="540" y="95" width="120" height="56" rx="10" fill="#171c27" stroke="#2a3040"/><text x="600" y="119" fill="#e7e9ef" text-anchor="middle">RRF 融合</text><text x="600" y="137" fill="#6b7385" font-size="10.5" text-anchor="middle">k=60 · 去重 · top50</text>
+    <path d="M500 34 L536 123 M500 88 L536 123 M500 142 L536 123 M500 196 L536 123" stroke="#5b6478" fill="none" marker-end="url(#ar2)"/>
+    <rect x="690" y="95" width="120" height="56" rx="10" fill="#171c27" stroke="#f5c66b" stroke-opacity=".7"/><text x="750" y="119" fill="#e7e9ef" text-anchor="middle">Cross-Encoder</text><text x="750" y="137" fill="#6b7385" font-size="10.5" text-anchor="middle">bge-reranker-v2 · top10</text>
+    <rect x="840" y="95" width="110" height="56" rx="10" fill="#171c27" stroke="#34d399" stroke-opacity=".7"/><text x="895" y="119" fill="#e7e9ef" text-anchor="middle">上下文组装</text><text x="895" y="137" fill="#6b7385" font-size="10.5" text-anchor="middle">父块扩展 · 排序</text>
+    <path d="M130 123 H156 M660 123 H686 M810 123 H836" stroke="#5b6478" marker-end="url(#ar2)"/>
+    <text x="480" y="240" fill="#6b7385" font-size="11" text-anchor="middle">元数据过滤（年份 / 会议 / collection / 权限）在召回阶段以 payload filter 方式下推到 Qdrant</text>
+  </svg>
+  <p class="cap">图 9-1 · 检索链路</p>
+  </div>
+  <h3>关键技术点</h3>
+  <div class="g2">
+    <div class="card"><h4>Query 路由</h4><p>用一个轻量分类器（小模型 + few-shot）把问题分为 <code>factoid</code>、<code>numeric</code>、<code>survey</code>、<code>paper_specific</code> 四类，分别走不同的检索组合和生成模板。survey 类问题自动进入深度研究模式。</p></div>
+    <div class="card"><h4>RRF 融合</h4><p>四路召回的分数尺度不同，因此不直接加权求和，而是用 Reciprocal Rank Fusion：<code>score = Σ 1/(60 + rank_i)</code>。这种方法对各路分数的分布不敏感，不需要调参。</p></div>
+    <div class="card"><h4>Reranker 领域微调</h4><p>用 QASPER 训练集的（问题、证据段）作为正样本，BM25 检索出的高分非证据段作为难负样本，对 bge-reranker 做 LoRA 微调。预期 NDCG@10 提升 3～5 个点。</p></div>
+    <div class="card"><h4>父块扩展（Small-to-Big）</h4><p>用句子级的小块做精确召回，送给 LLM 时扩展到所在段落或相邻段落，兼顾召回精度和上下文完整性。同一章节的多个命中会合并，避免重复。</p></div>
+  </div>
+<pre><span class="fn">retrieval/hybrid.py</span><code><span class="k">async def</span> <span class="f">hybrid_search</span>(q: Query, k: <span class="t">int</span> = <span class="t">10</span>) -> list[Evidence]:
+    dense, sparse, table, graph = <span class="k">await</span> asyncio.gather(          <span class="c"># 四路并发召回</span>
+        qdrant.search_dense(q.embedding, filter=q.filters, limit=<span class="t">100</span>),
+        qdrant.search_sparse(q.sparse_vec, filter=q.filters, limit=<span class="t">100</span>),
+        table_store.query(q) <span class="k">if</span> q.intent == <span class="s">"numeric"</span> <span class="k">else</span> noop(),
+        graph_expand(q.seed_papers, hops=<span class="t">1</span>) <span class="k">if</span> q.seed_papers <span class="k">else</span> noop(),
+    )
+    fused = rrf_fuse([dense, sparse, table, graph], k=<span class="t">60</span>)[:<span class="t">50</span>]
+    reranked = <span class="k">await</span> reranker.rerank(q.text, fused, top_k=k)
+    <span class="k">return</span> expand_to_parent(reranked, max_tokens=<span class="t">6000</span>)</code></pre>
+</section>
+<section id="agent">
+  <h2><span class="no">10</span>深度研究 Agent</h2>
+  <p class="lead">深度研究模式用 LangGraph 实现为一个带循环的状态机。设计重点是 Agent 知道什么时候停：通过"证据覆盖度"判断是否继续，不按固定轮数检索。</p>
+  <div class="diagram">
+  <svg viewBox="0 0 960 230" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif" font-size="12.5" text-anchor="middle">
+    <defs><marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5b6478"/></marker></defs>
+    <rect x="10" y="80" width="110" height="50" rx="25" fill="#171c27" stroke="#8b6cff"/><text x="65" y="110" fill="#fff">START</text>
+    <rect x="150" y="80" width="120" height="50" rx="10" fill="#171c27" stroke="#2a3040"/><text x="210" y="102" fill="#e7e9ef">Planner</text><text x="210" y="120" fill="#6b7385" font-size="10.5">子问题树</text>
+    <rect x="300" y="80" width="120" height="50" rx="10" fill="#1d1a10" stroke="#f5c66b"/><text x="360" y="102" fill="#f5c66b">Human Review</text><text x="360" y="120" fill="#a8906a" font-size="10.5">interrupt()</text>
+    <rect x="450" y="80" width="120" height="50" rx="10" fill="#171c27" stroke="#2a3040"/><text x="510" y="102" fill="#e7e9ef">Researcher</text><text x="510" y="120" fill="#6b7385" font-size="10.5">并行执行子问题</text>
+    <rect x="600" y="80" width="120" height="50" rx="10" fill="#171c27" stroke="#22d3ee"/><text x="660" y="102" fill="#e7e9ef">Reflector</text><text x="660" y="120" fill="#6b7385" font-size="10.5">覆盖度评估</text>
+    <rect x="750" y="80" width="90" height="50" rx="10" fill="#171c27" stroke="#2a3040"/><text x="795" y="102" fill="#e7e9ef">Writer</text><text x="795" y="120" fill="#6b7385" font-size="10.5">分章撰写</text>
+    <rect x="860" y="80" width="90" height="50" rx="10" fill="#10201a" stroke="#34d399"/><text x="905" y="102" fill="#6ee7b7">Verifier</text><text x="905" y="120" fill="#4a9e7f" font-size="10.5">NLI 校验</text>
+    <path d="M120 105 H146 M270 105 H296 M420 105 H446 M570 105 H596 M840 105 H856" stroke="#5b6478" marker-end="url(#ar3)"/>
+    <path d="M720 105 H746" stroke="#34d399" marker-end="url(#ar3)"/><text x="733" y="96" fill="#34d399" font-size="10">≥0.8</text>
+    <path d="M660 80 C660 30, 510 30, 510 76" stroke="#22d3ee" fill="none" stroke-dasharray="4 3" marker-end="url(#ar3)"/>
+    <text x="585" y="38" fill="#67e8f9" font-size="10.5">覆盖不足 → 生成补充查询（≤3 轮）</text>
+    <path d="M905 130 C905 195, 795 195, 795 134" stroke="#f87171" fill="none" stroke-dasharray="4 3" marker-end="url(#ar3)"/>
+    <text x="850" y="208" fill="#fca5a5" font-size="10.5">未通过校验的句子 → 重写</text>
+    <text x="210" y="170" fill="#6b7385" font-size="10.5">State 持久化到 Postgres checkpointer</text>
+    <text x="510" y="170" fill="#6b7385" font-size="10.5">工具：hybrid_search · table_query · citation_expand · read_section</text>
+  </svg>
+  <p class="cap">图 10-1 · 深度研究 Agent 状态图</p>
+  </div>
+<pre><span class="fn">agent/graph.py</span><code><span class="k">class</span> <span class="t">ResearchState</span>(TypedDict):
+    question: <span class="t">str</span>
+    plan: list[SubQuestion]                          <span class="c"># 每个子问题带 status 和 evidence</span>
+    evidence: Annotated[list[Evidence], operator.add] <span class="c"># 并行分支的证据自动合并</span>
+    coverage: <span class="t">float</span>
+    rounds: <span class="t">int</span>
+    draft: <span class="t">str</span>
+
+g = StateGraph(ResearchState)
+g.add_node(<span class="s">"planner"</span>, plan_node)
+g.add_node(<span class="s">"researcher"</span>, research_node)     <span class="c"># 用 Send API 对每个子问题 fan-out</span>
+g.add_node(<span class="s">"reflector"</span>, reflect_node)
+g.add_node(<span class="s">"writer"</span>, write_node)
+g.add_node(<span class="s">"verifier"</span>, verify_node)
+g.add_conditional_edges(<span class="s">"reflector"</span>,
+    <span class="k">lambda</span> s: <span class="s">"writer"</span> <span class="k">if</span> s[<span class="s">"coverage"</span>] >= <span class="t">0.8</span> <span class="k">or</span> s[<span class="s">"rounds"</span>] >= <span class="t">3</span> <span class="k">else</span> <span class="s">"researcher"</span>)
+app = g.compile(checkpointer=PostgresSaver(pool), interrupt_after=[<span class="s">"planner"</span>])</code></pre>
+  <h3>覆盖度如何计算</h3>
+  <p>Reflector 为每个子问题列出"回答它需要哪些信息点"，比如"PI 的困惑度""PI 的训练成本"，再逐项判断现有证据是否覆盖。覆盖度等于已覆盖信息点数除以总信息点数。未覆盖的信息点直接转成下一轮的补充查询。这样补检索有明确目标，不会让模型泛泛地"再搜一搜"。</p>
+  <div class="callout blue"><b>成本控制：</b>Planner、Writer 用强模型；Reflector、Query 改写用小模型。子问题之间并行执行。同一会话内的检索结果用 Redis 缓存，命中条件是 query embedding 的余弦相似度 &gt; 0.95。目标是单次深度研究的成本控制在 $0.15 以内。</div>
+</section>
+
+<section id="cite">
+  <h2><span class="no">11</span>引用校验与反幻觉</h2>
+  <p class="lead">这是本项目最核心的差异点。普通 RAG 只会"让模型带上引用"，ScholarLens 会在生成之后验证每条引用是否成立。</p>
+  <div class="flow">
+    <div class="step"><span class="i">01</span><b>受约束生成</b><small>Prompt 要求每句话以 <code>[eid]</code> 结尾，eid 只能从给定的证据 ID 中选；输出后用正则校验 eid 是否合法</small></div>
+    <div class="step"><span class="i">02</span><b>句子切分</b><small>把答案切成"论断 + 引用"对，引用多个来源的句子拆成多条</small></div>
+    <div class="step"><span class="i">03</span><b>NLI 判定</b><small>用 DeBERTa-v3-large-NLI 计算 P(证据蕴含论断)；数值类论断额外做规则校验，要求数字在原文中出现</small></div>
+    <div class="step"><span class="i">04</span><b>修复</b><small>蕴含概率低于 0.5 的句子交给 LLM 依据证据重写，只重写一次；仍不通过则删除或标红</small></div>
+    <div class="step"><span class="i">05</span><b>精确定位</b><small>在证据 chunk 内找出与论断最相似的句子，返回它的 bbox，前端据此精确高亮</small></div>
+  </div>
+<pre><span class="fn">verify/citation.py</span><code><span class="k">def</span> <span class="f">verify_claims</span>(answer: <span class="t">str</span>, evidence: dict[<span class="t">str</span>, Evidence]) -> VerifiedAnswer:
+    claims = split_claims(answer)                          <span class="c"># [(sentence, [eid, ...]), ...]</span>
+    pairs = [(evidence[e].text, c.text) <span class="k">for</span> c <span class="k">in</span> claims <span class="k">for</span> e <span class="k">in</span> c.eids]
+    probs = nli.predict_entailment(pairs, batch_size=<span class="t">32</span>)  <span class="c"># GPU 批量推理，约 15ms / 对</span>
+    <span class="k">for</span> c, p <span class="k">in</span> zip_claims(claims, probs):
+        c.supported = p >= <span class="t">0.5</span> <span class="k">and</span> numbers_grounded(c, evidence)
+        c.span = locate_span(c.text, evidence[c.best_eid])  <span class="c"># 句级 bbox</span>
+    <span class="k">return</span> VerifiedAnswer(claims, trust=mean(c.supported <span class="k">for</span> c <span class="k">in</span> claims))</code></pre>
+  <p>NLI 阈值 0.5 是初始值，上线前会在 200 条人工标注的"论断-证据"对上，按照 Precision 优先的原则重新标定。</p>
+</section>
+<section id="eval">
+  <h2><span class="no">12</span>评测体系</h2>
+  <p class="lead">只用公开基准和可复现的脚本。每项优化都要通过消融实验证明收益，这也是面试时最有说服力的部分。</p>
+  <h3>数据集</h3>
+  <table>
+    <thead><tr><th>数据集</th><th>内容</th><th>评测什么</th></tr></thead>
+    <tbody>
+      <tr><td><strong>QASPER</strong></td><td>约 1,500 篇 NLP 论文、5,000 多个问题，每个问题标注了证据段落</td><td>证据召回、Answer F1、拒答（含 unanswerable 题）</td></tr>
+      <tr><td><strong>SciFact</strong></td><td>1,409 条科学论断，配有支持 / 反驳摘要</td><td>引用校验模块的 NLI 准确率</td></tr>
+      <tr><td><strong>LitSearch</strong></td><td>597 个文献检索问题</td><td>论文级（L0）检索 Recall@k</td></tr>
+      <tr><td><strong>自建 SL-Bench</strong></td><td>300 题：数值比较 100 + 多跳 100 + 综述 100，人工标注</td><td>表格问答准确率、多跳成功率、综述质量（LLM-as-Judge + 人工）</td></tr>
+    </tbody>
+  </table>
+  <h3>消融实验设计（结果模板）</h3>
+  <p>下表各列分别填写对应配置的实测结果，"Δ" 列表示相对上一行的变化。文档只给出实验矩阵，数值待实测后填入。</p>
+  <table>
+    <thead><tr><th>#</th><th>配置</th><th>Recall@10</th><th>Answer F1</th><th>Citation P</th><th>P95 延迟</th></tr></thead>
+    <tbody>
+      <tr><td class="num">B0</td><td>Baseline：PyPDF + 固定 512 切分 + Dense</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td class="num">+1</td><td>MinerU 版面解析 + 按章节切分</td><td>Δ</td><td>Δ</td><td>Δ</td><td>Δ</td></tr>
+      <tr><td class="num">+2</td><td>Contextual Chunking</td><td>Δ</td><td>Δ</td><td>Δ</td><td>Δ</td></tr>
+      <tr><td class="num">+3</td><td>Hybrid（Dense + Sparse）+ RRF</td><td>Δ</td><td>Δ</td><td>Δ</td><td>Δ</td></tr>
+      <tr><td class="num">+4</td><td>Cross-Encoder 重排（微调版）</td><td>Δ</td><td>Δ</td><td>Δ</td><td>Δ</td></tr>
+      <tr><td class="num">+5</td><td>NLI 引用校验 + 重写</td><td>—</td><td>Δ</td><td>Δ</td><td>Δ</td></tr>
+      <tr><td class="num">+6</td><td>深度研究 Agent（仅多跳 / 综述题）</td><td>Δ</td><td>Δ</td><td>Δ</td><td>Δ</td></tr>
+    </tbody>
+  </table>
+  <h3>工程化</h3>
+  <ul class="dot">
+    <li><code>make eval SUITE=qasper-dev</code> 一条命令跑完整套评测，结果写入 Postgres，并在评测看板展示趋势。</li>
+    <li>CI 中跑 100 题的冒烟评测集；核心指标下降超过 2 个点就阻止合并。</li>
+    <li>线上的👎反馈和低可信度答案自动进入 bad case 池，每周人工归因，分为解析、召回、排序、生成四类，再补充进回归集。</li>
+  </ul>
+</section>
+
+<section id="stack">
+  <h2><span class="no">13</span>技术栈与工程实现</h2>
+  <div class="g3">
+    <div class="card"><h4>前端</h4><ul class="dot"><li>Reflex 0.6+（纯 Python）</li><li>自定义组件封装 PDF.js、ECharts</li><li>WebSocket 状态同步 + SSE 流式输出</li></ul></div>
+    <div class="card"><h4>后端</h4><ul class="dot"><li>FastAPI + Pydantic v2，全异步</li><li>SQLAlchemy 2.0 + Alembic</li><li>Celery + Redis 异步任务</li></ul></div>
+    <div class="card"><h4>AI / 检索</h4><ul class="dot"><li>LangGraph · LiteLLM</li><li>BGE-M3 · bge-reranker-v2-m3</li><li>MinerU · GROBID · DeBERTa-NLI</li></ul></div>
+    <div class="card"><h4>存储</h4><ul class="dot"><li>Qdrant · PostgreSQL 16</li><li>Neo4j 5 · MinIO · Redis</li></ul></div>
+    <div class="card"><h4>模型服务</h4><ul class="dot"><li>本地模型用 TEI / vLLM 部署</li><li>外部 LLM 由 LiteLLM 统一路由，失败自动 fallback</li></ul></div>
+    <div class="card"><h4>质量与运维</h4><ul class="dot"><li>pytest + ruff + mypy · uv 管理依赖</li><li>Langfuse trace · Prometheus + Grafana</li><li>docker compose 一键部署</li></ul></div>
+  </div>
+  <h3>目录结构</h3>
+<pre><span class="fn">tree</span><code>scholarlens/
+├── apps/
+│   ├── api/            <span class="c"># FastAPI 路由、鉴权、SSE</span>
+│   ├── worker/         <span class="c"># Celery 任务：解析、切分、Embedding</span>
+│   └── web/            <span class="c"># Reflex 前端（pages / components / state）</span>
+├── core/
+│   ├── ingest/         <span class="c"># 解析器适配层 → PaperIR</span>
+│   ├── index/          <span class="c"># 多粒度索引、Contextual Chunking、表格抽取</span>
+│   ├── retrieval/      <span class="c"># 混合检索、RRF、重排、Query 路由</span>
+│   ├── agent/          <span class="c"># LangGraph 研究图、工具定义</span>
+│   ├── verify/         <span class="c"># NLI 引用校验、span 定位</span>
+│   └── llm/            <span class="c"># LiteLLM 封装、prompt 模板（版本化）</span>
+├── eval/               <span class="c"># 数据集加载器、指标、消融脚本</span>
+├── deploy/             <span class="c"># docker-compose.yml、Grafana 面板</span>
+└── tests/</code></pre>
+  <h3>核心 API</h3>
+  <table>
+    <thead><tr><th>方法</th><th>路径</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td class="num">POST</td><td><code>/v1/collections/{id}/papers</code></td><td>上传 PDF 或提交 arXiv ID，返回 task_id</td></tr>
+      <tr><td class="num">GET</td><td><code>/v1/tasks/{id}/events</code></td><td>SSE：推送解析进度</td></tr>
+      <tr><td class="num">POST</td><td><code>/v1/query</code></td><td>快速问答，流式返回 token 和 citation 事件</td></tr>
+      <tr><td class="num">POST</td><td><code>/v1/research</code></td><td>创建深度研究任务，返回 thread_id 和研究计划</td></tr>
+      <tr><td class="num">POST</td><td><code>/v1/research/{thread}/resume</code></td><td>提交修改后的研究计划，继续执行</td></tr>
+      <tr><td class="num">GET</td><td><code>/v1/papers/{id}/graph</code></td><td>获取引用子图（可指定 hops）</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="part">Part III · 交付</div>
+
+<section id="plan">
+  <h2><span class="no">14</span>里程碑</h2>
+  <p class="lead">按一个人业余时间开发估算，共 8 周。每个阶段结束时都有可演示的成果和评测数字。</p>
+  <div class="tl">
+    <div class="m"><span class="w">W1–W2 · M1</span><h4>解析与基础问答</h4><p>MinerU 解析接入 PaperIR，按章节切分，Dense 检索，最简 Reflex 问答页面。在 QASPER 上跑出 B0、+1 两行数据。</p></div>
+    <div class="m"><span class="w">W3–W4 · M2</span><h4>检索优化</h4><p>Contextual Chunking、BGE-M3 混合检索、RRF、Reranker 及其微调，完成消融表 +2 到 +4 行。</p></div>
+    <div class="m"><span class="w">W5 · M3</span><h4>可信引用</h4><p>受约束生成、NLI 校验、bbox 定位，PDF 阅读器支持双向跳转。</p></div>
+    <div class="m"><span class="w">W6–W7 · M4</span><h4>深度研究与表格问答</h4><p>LangGraph 研究图、human-in-the-loop、表格四元组抽取、引用图谱。</p></div>
+    <div class="m"><span class="w">W8 · M5</span><h4>工程化与收尾</h4><p>评测看板、CI 评测门禁、Langfuse、docker compose，录制 3 分钟演示视频，撰写 README 和技术博客。</p></div>
+  </div>
+</section>
+
+<section id="risk">
+  <h2><span class="no">15</span>风险与对策</h2>
+  <table>
+    <thead><tr><th>风险</th><th>影响</th><th>对策</th></tr></thead>
+    <tbody>
+      <tr><td>MinerU 解析慢且依赖 GPU</td><td>万篇建库耗时过长</td><td>评测只用 QASPER 子集；GPU 批处理；同时提供 PyMuPDF 快速模式作为降级方案</td></tr>
+      <tr><td>表格抽取的 LLM 输出不稳定</td><td>数值问答出错</td><td>结构化输出 + 数值必须出现在原表的校验 + 抽样人工核查</td></tr>
+      <tr><td>Agent 循环成本失控</td><td>单次研究费用高、耗时长</td><td>限制最多 3 轮；小模型负责反思；token 预算超限后提前进入 Writer</td></tr>
+      <tr><td>NLI 模型对长证据判断不准</td><td>误杀正确句子</td><td>先在证据中定位最相关的句子，再做 NLI；阈值在人工标注集上标定</td></tr>
+      <tr><td>论文版权</td><td>无法公开演示</td><td>演示只用 arXiv 上开放许可的论文</td></tr>
+    </tbody>
+  </table>
+</section>
+<section id="interview">
+  <h2><span class="no">16</span>面试亮点与高频追问</h2>
+  <p class="lead">把项目拆成 5 个可以独立深挖的技术点，每个点都准备好"为什么这么做、数据如何、踩过什么坑"。</p>
+  <div class="g2">
+    <div class="card"><h4>① 学术 PDF 解析</h4><p><strong>追问：</strong>双栏排版和公式怎么处理？为什么不用 Unstructured？<br><strong>答点：</strong>版面检测 + XY-Cut 确定阅读顺序；公式转 LaTeX 并配自然语言描述；统一 IR 与解析器解耦；B0 → +1 的消融数据。</p></div>
+    <div class="card"><h4>② 混合检索</h4><p><strong>追问：</strong>为什么用 RRF 而不是加权融合？Sparse 解决了什么问题？<br><strong>答点：</strong>不同召回路的分数尺度不可比；模型名、数据集名这类专有名词靠 Sparse 召回；举一个 Dense 漏召回的 bad case。</p></div>
+    <div class="card"><h4>③ 深度研究 Agent</h4><p><strong>追问：</strong>Agent 怎么知道何时停止？成本如何控制？<br><strong>答点：</strong>按信息点计算覆盖度、最多 3 轮、大小模型分工、子问题并行、checkpoint 支持中断后恢复。</p></div>
+    <div class="card"><h4>④ 引用校验</h4><p><strong>追问：</strong>怎么保证引用不是编造的？NLI 阈值怎么定？<br><strong>答点：</strong>生成时约束 eid 合法、生成后做 NLI 蕴含判定、数值规则校验、在人工标注集上标定阈值、引用精确到 bbox。</p></div>
+    <div class="card"><h4>⑤ 评测驱动迭代</h4><p><strong>追问：</strong>怎么证明你的优化有效？<br><strong>答点：</strong>公开基准 + 自建集、消融表格、CI 评测门禁、bad case 四类归因、线上反馈闭环。</p></div>
+    <div class="card"><h4>⑥ 工程取舍</h4><p><strong>追问：</strong>为什么选 Qdrant / LangGraph / Reflex？<br><strong>答点：</strong>见 06 章的决策表。能讲清楚各个备选方案的局限，比只说用了什么更重要。</p></div>
+  </div>
+  <div class="callout"><b>简历一句话版本：</b>设计并实现面向学术文献的 Agentic RAG 系统 ScholarLens。通过版面感知解析、Contextual Chunking、混合检索与微调重排，在 QASPER 上把证据召回提升到 X%；基于 LangGraph 构建可中断的深度研究 Agent；引入 NLI 句级引用校验，使引用准确率达到 Y%。前后端全部使用 Python（FastAPI + Reflex）实现。</div>
+</section>
+
+<footer>
+  <span>ScholarLens · PRD & Technical Design · v1.0</span>
+  <span>2026-11 · 指标为设计目标，以实测为准</span>
+</footer>
+</div></main>
+</body>
+</html>
