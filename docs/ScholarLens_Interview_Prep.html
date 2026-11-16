@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScholarLens · 面试准备手册</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0c11;--bg2:#0e1118;--surface:#12161f;--surface2:#171c27;
+  --line:rgba(255,255,255,.07);--line2:rgba(255,255,255,.12);
+  --text:#e7e9ef;--muted:#98a1b3;--dim:#6b7385;
+  --a1:#8b6cff;--a2:#22d3ee;--a3:#f5c66b;--ok:#34d399;--warn:#fbbf24;--bad:#f87171;
+  --grad:linear-gradient(120deg,#8b6cff 0%,#4f8cff 45%,#22d3ee 100%);
+  --sans:"Inter","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --serif:"Noto Serif SC","Songti SC",serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.75;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(900px 500px at 85% -10%,rgba(139,108,255,.16),transparent 60%),
+             radial-gradient(700px 400px at 10% 110%,rgba(34,211,238,.10),transparent 60%);}
+a{color:var(--a2);text-decoration:none}
+.side{position:fixed;top:0;left:0;bottom:0;width:272px;padding:28px 22px;border-right:1px solid var(--line);
+  background:rgba(10,12,17,.82);backdrop-filter:blur(14px);overflow-y:auto;z-index:10}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;margin-bottom:4px}
+.logo b{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.side .tag{font-size:12px;color:var(--dim);margin-bottom:22px}
+.side h6{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:20px 0 8px}
+.side a{display:flex;gap:10px;color:var(--muted);font-size:13.5px;padding:6px 10px;border-radius:8px;transition:.15s}
+.side a span{color:var(--dim);font-variant-numeric:tabular-nums;min-width:20px}
+.side a:hover{background:rgba(255,255,255,.04);color:var(--text)}
+main{margin-left:272px;position:relative;z-index:1}
+.wrap{max-width:900px;margin:0 auto;padding:54px 40px 120px}
+.hero{padding:30px 0 16px;border-bottom:1px solid var(--line);margin-bottom:30px}
+.eyebrow{font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--a1);font-weight:600;margin-bottom:12px}
+h1{font-family:var(--serif);font-weight:900;font-size:38px;line-height:1.2;letter-spacing:-.01em;margin-bottom:12px}
+h1 .g{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.lead{color:var(--muted);font-size:15.5px;max-width:70ch}
+section{margin:46px 0;scroll-margin-top:24px}
+h2{font-family:var(--serif);font-weight:700;font-size:25px;margin-bottom:8px;display:flex;align-items:baseline;gap:12px}
+h2 .no{font-family:var(--mono);font-size:14px;color:var(--a1);font-weight:500}
+h3{font-size:17px;font-weight:700;margin:26px 0 10px;color:#eef0f5}
+h4{font-size:14.5px;font-weight:700;margin:4px 0 6px}
+p{margin:10px 0;color:#d3d7e0}
+ul,ol{margin:10px 0 10px 4px;padding-left:20px}
+li{margin:5px 0;color:#d3d7e0}
+strong{color:#fff;font-weight:600}
+em{color:var(--a3);font-style:normal}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:14px 0}
+.q{border-left:3px solid var(--a1);background:linear-gradient(90deg,rgba(139,108,255,.07),transparent 80%);
+  border-radius:0 12px 12px 0;padding:16px 20px;margin:16px 0}
+.q .qt{font-weight:700;color:#fff;font-size:15.5px;margin-bottom:8px;display:flex;gap:8px}
+.q .qt::before{content:"Q";font-family:var(--mono);font-size:12px;color:var(--a1);border:1px solid var(--a1);border-radius:5px;padding:1px 6px;height:fit-content;flex:none}
+.q .a{color:#cdd2dc}
+.q .a::before{content:"答";font-family:var(--serif);font-size:12px;color:var(--a2);margin-right:8px;border:1px solid rgba(34,211,238,.4);border-radius:5px;padding:1px 6px}
+.pill{display:inline-block;font-family:var(--mono);font-size:11.5px;padding:2px 9px;border-radius:20px;background:rgba(139,108,255,.12);color:#b9a7ff;border:1px solid rgba(139,108,255,.25);margin:0 4px 4px 0}
+.callout{background:linear-gradient(120deg,rgba(139,108,255,.1),rgba(34,211,238,.06));border:1px solid var(--line2);border-radius:14px;padding:16px 20px;margin:18px 0;color:#dfe3ea;font-size:14.5px}
+.callout b{color:#fff}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13.8px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line)}
+th{color:var(--dim);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+td{color:#cfd3dd;vertical-align:top}
+tr:hover td{background:rgba(255,255,255,.015)}
+code{font-family:var(--mono);font-size:12.5px;background:rgba(255,255,255,.06);padding:1.5px 6px;border-radius:5px;color:#e4b9ff}
+.mono{font-family:var(--mono)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.warnbox{border-left:3px solid var(--warn);background:rgba(251,191,36,.05);padding:14px 18px;border-radius:0 12px 12px 0;margin:14px 0}
+.okbox{border-left:3px solid var(--ok);background:rgba(52,211,153,.05);padding:14px 18px;border-radius:0 12px 12px 0;margin:14px 0}
+footer{border-top:1px solid var(--line);margin-top:60px;padding-top:22px;display:flex;justify-content:space-between;color:var(--dim);font-size:12.5px}
+@media(max-width:960px){.side{display:none}main{margin-left:0}.wrap{padding:30px 20px 80px}.g2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<nav class="side">
+  <div class="logo">◈ <b>ScholarLens</b></div>
+  <div class="tag">面试准备手册 · v1.0</div>
+  <h6>开场</h6>
+  <a href="#pitch"><span>01</span>项目自述（电梯稿）</a>
+  <a href="#narrate"><span>02</span>项目解读与叙事线</a>
+  <h6>深挖</h6>
+  <a href="#highlights"><span>03</span>项目亮点</a>
+  <a href="#challenges"><span>04</span>技术挑战</a>
+  <a href="#research"><span>05</span>技术调研与选型</a>
+  <a href="#eval"><span>06</span>评测工作</a>
+  <h6>问答预判</h6>
+  <a href="#qa-rag"><span>07</span>RAG 与检索</a>
+  <a href="#qa-agent"><span>08</span>Agent 与引用校验</a>
+  <a href="#qa-eng"><span>09</span>工程与系统设计</a>
+  <a href="#qa-deep"><span>10</span>拷打与诚实题</a>
+  <h6>收尾</h6>
+  <a href="#boundary"><span>11</span>诚实边界清单</a>
+  <a href="#checklist"><span>12</span>面试前自检</a>
+</nav>
+
+<main><div class="wrap">
+<header class="hero" id="top">
+  <div class="eyebrow">Interview Preparation Handbook</div>
+  <h1>ScholarLens <span class="g">面试准备手册</span></h1>
+  <p class="lead">怎么把这个项目讲清楚、讲出深度、扛住追问。每个问题都给出标准且靠谱的回答——全部与真实实现（六边形架构、混合检索、NLI 引用校验、覆盖度驱动的研究 Agent、B0→+6 消融）一致，不夸大、不编造数据。</p>
+</header>
+
+<!-- 01 -->
+<section id="pitch">
+  <h2><span class="no">01</span>项目自述（电梯稿）</h2>
+  <p>准备三个长度的版本，按面试官给的时间选用。核心是<strong>先说清解决什么问题，再说关键技术决策，最后给可量化结果</strong>。</p>
+
+  <h3>30 秒版（一句话 + 三个支点）</h3>
+  <div class="card">
+    ScholarLens 是一个面向学术文献的<em>可溯源深度研究引擎</em>：解析论文 PDF、沿引用关系做多跳检索，生成带引用的研究综述，<strong>每一句结论都能追溯到原文的页码和坐标框</strong>。它解决通用 RAG 处理学术文献的三个硬伤——解析失真、单跳检索不够、引用不可信。关键做法是：版面感知解析 + 多粒度混合检索 + <strong>生成后用 NLI 逐句校验引用是否成立</strong>。
+  </div>
+
+  <h3>2 分钟版（问题 → 方案 → 亮点 → 结果）</h3>
+  <ol>
+    <li><strong>问题</strong>：研究者做文献调研，通用 RAG 有三个痛点——PyPDF 提取双栏/公式会串栏乱码；一次 Top-K 覆盖不了"方法 A 与其改进 B 的差异"这类多跳问题；LLM 常编造论文标题或张冠李戴，核对起来反而更慢。</li>
+    <li><strong>方案</strong>：离线用 MinerU 做版面解析保留公式/表格/坐标，归一成统一的 Document IR；建四层多粒度索引并对每个 chunk 加上下文前缀；在线走四路混合召回（Dense+Sparse+表格+引用图）+ RRF 融合 + Cross-Encoder 重排。</li>
+    <li><strong>亮点</strong>：两个差异点——① 深度研究 Agent 用"证据覆盖度"而不是固定轮数决定何时停止补检索；② <strong>引用校验</strong>，生成后对每条引用做 NLI 蕴含判定，不达标的句子让模型依据证据重写，可信度可量化、引用精确到 bbox。</li>
+    <li><strong>结果/工程</strong>：整套用六边形架构，外部系统全部抽象成接口、各有真实实现和内存假实现，核心逻辑有 55 个单测、可一键评测；设计目标是证据召回比朴素向量检索提升 25%+、引用准确率 ≥0.9（以消融实测为准）。</li>
+  </ol>
+
+  <div class="callout"><b>讲法要点：</b>自述里主动埋 2-3 个"钩子"（NLI 校验、覆盖度停止、六边形架构），引导面试官往你最熟的点追问，掌握主动权。</div>
+</section>
+
+<!-- 02 -->
+<section id="narrate">
+  <h2><span class="no">02</span>项目解读与叙事线</h2>
+  <p>被要求"介绍一下你的项目"时，不要按模块罗列，要按<strong>一条叙事线</strong>讲，让面试官跟得上。</p>
+
+  <h3>推荐叙事线：一个查询的生命周期</h3>
+  <p>用"用户问一个问题，系统怎么一步步给出可信答案"串起所有模块，自然覆盖解析、索引、检索、生成、校验：</p>
+  <table>
+    <thead><tr><th>阶段</th><th>讲什么</th><th>能带出的技术点</th></tr></thead>
+    <tbody>
+      <tr><td>离线建库</td><td>PDF → 版面解析 → Document IR → 多粒度切分 + 上下文前缀 → 写三个库</td><td>MinerU、IR 解耦、Contextual Chunking、Qdrant/Neo4j/Postgres 分工</td></tr>
+      <tr><td>Query 理解</td><td>路由到 factoid/numeric/survey/paper_specific 四类，走不同检索组合</td><td>意图分类、survey 自动进深度研究</td></tr>
+      <tr><td>混合检索</td><td>四路并发召回 → RRF 融合 → Cross-Encoder 重排 → 父块扩展</td><td>RRF 为何优于加权、Small-to-Big</td></tr>
+      <tr><td>受约束生成</td><td>每句以 [eid] 结尾，eid 只能取自给定证据</td><td>反幻觉的第一道闸</td></tr>
+      <tr><td>引用校验</td><td>切句 → NLI 蕴含判定 → 数值规则校验 → 不达标重写 → 定位 bbox</td><td>项目最核心差异点</td></tr>
+    </tbody>
+  </table>
+
+  <h3>画架构图的顺序</h3>
+  <p>白板讲架构时，按"<strong>离线/在线分离</strong>"切两块画，别一股脑铺：</p>
+  <ul>
+    <li>先画一条横线分<strong>离线 Ingestion</strong>（Celery 异步，重、慢、可重试）和<strong>在线 Query</strong>（低延迟、流式）——先讲清为什么要分，体现你懂负载特性。</li>
+    <li>再画<strong>存储层</strong>四个库，每个一句话职责（向量/图/关系/对象）。</li>
+    <li>最后点一句<strong>六边形架构</strong>：这些外部系统我都抽象成了接口，换 Qdrant 还是别的只改一个 adapter——这是体现工程成熟度的句子。</li>
+  </ul>
+
+  <div class="okbox"><strong>一个让面试官印象深刻的细节：</strong>主动说"我没有把界面做成全 Python 的 Reflex，而是独立的 Next.js，因为三栏联动 + PDF bbox 高亮这类交互 Reflex 生态吃力"——展示你对选型做过真实权衡，而不是跟风。</div>
+</section>
+
+<!-- 03 -->
+<section id="highlights">
+  <h2><span class="no">03</span>项目亮点</h2>
+  <p>把项目拆成 5 个可以独立深挖的技术点。每个点都按<strong>是什么 → 为什么这么做 → 怎么实现 → 数据/效果</strong>准备，面试官追到哪一层都能接住。</p>
+
+  <h3>① 版面感知解析 + 统一 Document IR</h3>
+  <div class="card">
+    <p><strong>是什么：</strong>用 MinerU 把 PDF 切成带类型的 block（标题/正文/公式/表格/图注），公式转 LaTeX、表格转 HTML，每个元素保留页码和坐标框；所有解析器输出归一到同一个 Pydantic 模型 <code>PaperIR</code>。</p>
+    <p><strong>为什么：</strong>"解析质量决定 RAG 效果的上限"——提取阶段串栏、公式乱码，后面检索再强也没用。统一 IR 让下游只依赖 IR，<strong>换解析器不用改下游代码</strong>。</p>
+    <p><strong>怎么实现：</strong>行内公式以 LaTeX 内联进文本，独立公式额外生成一句自然语言描述一起入索引，这样用户用自然语言也能检索到公式。</p>
+    <p><strong>效果：</strong>消融表 B0（PyPDF+固定切分）→ +1（MinerU+按章节切分）这一行量化它的收益。</p>
+  </div>
+
+  <h3>② Contextual Chunking（上下文前缀）</h3>
+  <div class="card">
+    <p><strong>是什么：</strong>入库前为每个 chunk 生成 50–100 token 的上下文前缀，把前缀和正文一起做 embedding 和 BM25。</p>
+    <p><strong>为什么：</strong>解决 chunk 缺主语无法被召回——"该方法提升 2.3 个点"这种句子单独看检索不到，补上"本段出自 YaRN §5.2 长文本实验"就能召回。</p>
+    <p><strong>工程细节：</strong>前缀生成用 prompt caching，同一篇论文全文只缓存一次，每个 chunk 的调用成本降约 90%——这是能体现"考虑真实成本"的细节。</p>
+  </div>
+
+  <h3>③ 深度研究 Agent：按覆盖度停止</h3>
+  <div class="card">
+    <p><strong>是什么：</strong>Plan→Research→Reflect→Write→Verify 的带循环状态机。<strong>关键是 Agent 知道何时停</strong>：Reflector 为每个子问题列出"需要哪些信息点"，覆盖度 = 已覆盖/总信息点，不足则把未覆盖项转成下一轮的补充查询（≤3 轮）。</p>
+    <p><strong>为什么好：</strong>比"固定搜 N 轮"更省、更准——补检索有明确目标，不会让模型泛泛地"再搜一搜"。</p>
+    <p><strong>成本控制：</strong>Planner/Writer 用强模型，Reflector/改写用小模型；子问题并行；会话内检索结果按 query embedding 余弦 &gt;0.95 缓存，目标单次深度研究 &lt;$0.15。</p>
+  </div>
+
+  <h3>④ 句级引用校验（最核心差异点）</h3>
+  <div class="card">
+    <p><strong>是什么：</strong>普通 RAG 只"让模型带引用"；ScholarLens 在<strong>生成之后验证每条引用是否成立</strong>。五步：受约束生成（句尾 [eid] 且合法）→ 切成论断-引用对 → DeBERTa-NLI 判定 P(证据蕴含论断) → 数值类再做"数字必须在原文出现"的规则校验 → 蕴含概率低于阈值的句子让 LLM 依据证据重写一次，仍不过则标红。</p>
+    <p><strong>为什么是护城河：</strong>学术场景里"引用不可信"是致命伤。这套把"幻觉"从不可控变成可度量——每个答案给可信度评分（如"92% 的论断有直接证据"），引用精确到 bbox。</p>
+    <p><strong>阈值怎么定：</strong>NLI 阈值 0.5 是初始值，上线前在 200 条人工标注的"论断-证据"对上按 Precision 优先重新标定。</p>
+  </div>
+
+  <h3>⑤ 六边形架构 + 评测驱动</h3>
+  <div class="card">
+    <p><strong>是什么：</strong>所有外部系统（向量库/图库/LLM/Embedder/Reranker/NLI/解析器）抽象成 Protocol 接口，每个接口有真实 adapter 和内存 fake。</p>
+    <p><strong>为什么：</strong>① 可测——用 fakes 不依赖 GPU/Docker 就能端到端跑 55 个单测；② 可扩展——换后端只改一个 adapter；③ 可读——业务逻辑和 IO 彻底分离。这是把"学生项目"和"工程项目"区分开的东西。</p>
+  </div>
+</section>
+
+<!-- 04 -->
+<section id="challenges">
+  <h2><span class="no">04</span>技术挑战</h2>
+  <p>面试官爱问"你遇到最大的挑战是什么"。准备 3-4 个<strong>真实、有技术含量、你主导解决</strong>的，每个按"难在哪 → 几种方案 → 为什么选这个 → 代价"讲。</p>
+
+  <h3>挑战一：四路召回的分数不可比</h3>
+  <div class="q">
+    <div class="qt">Dense、Sparse、表格、引用图四路召回，分数尺度完全不同，怎么融合？</div>
+    <div class="a">加权求和要调权重、对分布敏感、换数据就失效。我用 <strong>Reciprocal Rank Fusion</strong>：score = Σ 1/(k+rank)，只看每路里的<em>排名</em>不看分数，对尺度天然不敏感、k=60 基本无需调参。代价是丢失了分数的绝对强度信息，所以 RRF 之后再接一层 Cross-Encoder 重排把精度找回来。</div>
+  </div>
+
+  <h3>挑战二：chunk 缺主语召回不到</h3>
+  <div class="q">
+    <div class="qt">"该方法提升 2.3 个点"这种句子检索不到，怎么办？</div>
+    <div class="a">这是 chunk 独立切分的通病。我用 Contextual Chunking 给每个 chunk 补上下文前缀再索引。难点是成本——每个 chunk 都调一次 LLM 太贵，用 prompt caching 把同一篇论文全文缓存一次，单 chunk 成本降约 90%。</div>
+  </div>
+
+  <h3>挑战三：怎么保证"引用"真的成立</h3>
+  <div class="q">
+    <div class="qt">模型会编造引用，你怎么从机制上杜绝？</div>
+    <div class="a">分两道闸：生成时用受约束 prompt 让 eid 只能取自给定证据、再用正则校验合法性（挡住编造 id）；生成后用 NLI 判定证据是否真的<em>蕴含</em>该句（挡住"id 合法但内容对不上"）。数值类再加硬规则——数字必须在原文出现。三者叠加，把引用正确性做成可度量的指标而不是祈祷。</div>
+  </div>
+
+  <h3>挑战四：Agent 不收敛 / 成本失控</h3>
+  <div class="q">
+    <div class="qt">研究 Agent 容易无限循环或烧钱，你怎么控制？</div>
+    <div class="a">用覆盖度而非固定轮数作为停止条件，并硬性封顶 3 轮；大小模型分工（规划/写作用强模型，反思/改写用小模型）；子问题并行；会话内语义缓存。状态用 checkpoint 持久化，支持人工编辑研究计划后恢复（human-in-the-loop）。</div>
+  </div>
+</section>
+
+<!-- 05 -->
+<section id="research">
+  <h2><span class="no">05</span>技术调研与选型</h2>
+  <p>面试官问"为什么用 X 不用 Y"时，<strong>能讲清备选方案的局限，比只说用了什么更重要</strong>。每个选型都准备"候选 / 选谁 / 真实理由（最好带具体场景）"。</p>
+
+  <table>
+    <thead><tr><th>决策点</th><th>选择</th><th>备选</th><th>真实理由（要能举具体场景）</th></tr></thead>
+    <tbody>
+      <tr><td>向量库</td><td>Qdrant</td><td>Milvus / pgvector</td><td>原生支持 dense+sparse 混合查询和 payload 过滤；<em>pgvector 在百万级 chunk 上加过滤条件会明显掉性能</em>——正是本项目场景（200 万 chunk + 按 collection/权限过滤）</td></tr>
+      <tr><td>Agent 编排</td><td>LangGraph</td><td>手写循环 / CrewAI</td><td>显式状态机，支持 <code>interrupt()</code> 中断恢复（用户编辑研究计划）和 checkpoint；手写循环做不优雅、CrewAI 抽象太高不好控制停止条件</td></tr>
+      <tr><td>Embedding</td><td>BGE-M3</td><td>OpenAI text-embedding-3</td><td>一次前向<em>同时</em>给出 dense 和 sparse，正好喂混合检索；中英文都行；私有论文库能本地部署，不能都发给第三方</td></tr>
+      <tr><td>PDF 解析</td><td>MinerU + GROBID</td><td>PyMuPDF / Unstructured</td><td>MinerU 对双栏、公式（输出 LaTeX）、表格还原最好；GROBID 专攻参考文献结构化。两者分工</td></tr>
+      <tr><td>前端</td><td>Next.js + shadcn</td><td>Reflex / Streamlit</td><td>三栏联动 + 流式 + PDF bbox 高亮交互重；Streamlit 每次交互重跑脚本做不了；Reflex 纯 Python 但生态小众、PDF.js/ECharts 要隔层封装。直接用 React 生态更顺</td></tr>
+      <tr><td>LLM 接入</td><td>LiteLLM</td><td>直接调各家 SDK</td><td>统一网关，Claude/Qwen/DeepSeek/本地 vLLM 可切换 + 失败 fallback，避免被单一供应商绑定</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout"><b>调研方法论（面试官问"你怎么做技术调研"）：</b>①先明确约束（私有数据不能外发 → 必须可本地部署）；②列候选，各跑一个最小验证（比如 pgvector vs Qdrant 在百万级加过滤的延迟）；③用<em>消融实验</em>而不是直觉决定保留哪个环节——没有收益的环节不保留。</div>
+</section>
+
+<!-- 06 -->
+<section id="eval">
+  <h2><span class="no">06</span>评测工作</h2>
+  <p>这是最能体现"工程素养"的部分。核心信息：<strong>只用公开基准 + 可复现脚本，每项优化都用消融证明收益</strong>。</p>
+
+  <h3>数据集与指标</h3>
+  <table>
+    <thead><tr><th>数据集</th><th>评什么</th></tr></thead>
+    <tbody>
+      <tr><td>QASPER（~1500 篇 NLP 论文、5000+ 问题，标注证据段）</td><td>证据召回 Recall@10、Answer F1、拒答（含 unanswerable）</td></tr>
+      <tr><td>SciFact（1409 条科学论断 + 支持/反驳摘要）</td><td>引用校验模块的 NLI 准确率</td></tr>
+      <tr><td>LitSearch（597 个文献检索问题）</td><td>论文级（L0）检索 Recall@k</td></tr>
+      <tr><td>自建 SL-Bench（数值100+多跳100+综述100）</td><td>表格问答准确率、多跳成功率、综述质量（LLM-as-Judge+人工）</td></tr>
+    </tbody>
+  </table>
+
+  <h3>消融实验矩阵（B0 → +6）</h3>
+  <p>每一行在上一行基础上加一个组件，逐项量化收益。代码里 <code>eval/ablation.py</code> 就是这个矩阵：</p>
+  <table>
+    <thead><tr><th>#</th><th>配置</th><th>加了什么</th></tr></thead>
+    <tbody>
+      <tr><td>B0</td><td>Baseline</td><td>PyPDF + 固定 512 切分 + Dense</td></tr>
+      <tr><td>+1</td><td>版面解析</td><td>MinerU + 按章节切分</td></tr>
+      <tr><td>+2</td><td>上下文切分</td><td>Contextual Chunking</td></tr>
+      <tr><td>+3</td><td>混合检索</td><td>Dense+Sparse + RRF</td></tr>
+      <tr><td>+4</td><td>重排</td><td>Cross-Encoder（微调版）</td></tr>
+      <tr><td>+5</td><td>引用校验</td><td>NLI + 重写</td></tr>
+      <tr><td>+6</td><td>研究 Agent</td><td>多跳/综述题</td></tr>
+    </tbody>
+  </table>
+
+  <h3>工程化闭环</h3>
+  <ul>
+    <li><code>make eval SUITE=qasper-dev</code> 一条命令跑完，结果写入 Postgres，看板展示趋势；</li>
+    <li>CI 跑 100 题冒烟集，<strong>核心指标下降超 2 个点就阻止合并</strong>——质量门禁；</li>
+    <li>线上👎反馈和低可信度答案进 bad case 池，每周按<em>解析/召回/排序/生成</em>四类归因，补进回归集。</li>
+  </ul>
+
+  <div class="warnbox"><strong>诚实提醒（重要）：</strong>PRD 里的 Recall@10≥0.85、引用准确率≥0.9 都是<em>设计目标值</em>，不是实测数据。面试时务必说"这是目标，实测以消融表为准"——被追问"你实测多少"时如实说明进度，<strong>绝不报一个编的数字</strong>，这是诚信红线，也是面试官最在意的。</div>
+</section>
+
+<!-- 07 -->
+<section id="qa-rag">
+  <h2><span class="no">07</span>问答预判 · RAG 与检索</h2>
+
+  <div class="q"><div class="qt">RAG 的 chunk 大小怎么定？</div><div class="a">没有万能值，取决于内容密度和问题粒度。我用<strong>多粒度</strong>回避这个两难：L0 整篇、L1 章节、L2 ~400token 段落、L3 表格/公式元素，父子关联。精确召回用小块，送 LLM 时用 Small-to-Big 扩展到所在段落，兼顾召回精度和上下文完整。</div></div>
+
+  <div class="q"><div class="qt">为什么要 Sparse 检索，Dense 不够吗？</div><div class="a">Dense 擅长语义相似，但对<em>专有名词</em>弱——"YaRN""LongBench""NQ"这类模型名/数据集名，Dense 容易漏，Sparse（BM25/SPLADE）靠精确词匹配能召回。学术场景专有名词极多，所以必须双路。举例：问"YaRN 的困惑度"，Dense 可能召回一堆讲困惑度的无关段落，Sparse 能把含"YaRN"的段落顶上来。</div></div>
+
+  <div class="q"><div class="qt">RRF 的 k=60 是怎么来的？</div><div class="a">RRF 原论文的经验值，作用是平滑高排名项的影响、降低对单路头部结果的过度依赖。它不敏感、改动收益很小，所以我没花精力调它，把调参预算放在更有收益的重排微调上——<em>这也体现一种工程判断：不是所有超参都值得调</em>。</div></div>
+
+  <div class="q"><div class="qt">重排器为什么要微调？怎么构造训练数据？</div><div class="a">通用 reranker 对学术领域的"证据 vs 相关但非证据"区分不够细。我用 QASPER 训练集的(问题,证据段)作正样本，<strong>BM25 检索出的高分非证据段作难负样本</strong>，对 bge-reranker 做 LoRA 微调。难负样本是关键——用随机负样本学不到细粒度区分。</div></div>
+
+  <div class="q"><div class="qt">检索召回不到正确证据（漏召回）怎么排查？</div><div class="a">进 bad case 池后按链路定位：先看 Dense/Sparse 各自的 top100 里有没有 gold 证据——如果都没有是召回问题（可能 chunk 缺上下文、或 query 需要改写/HyDE）；如果召回有但 RRF/重排后掉出 top10，是排序问题。四类归因（解析/召回/排序/生成）就是干这个的。</div></div>
+</section>
+
+<!-- 08 -->
+<section id="qa-agent">
+  <h2><span class="no">08</span>问答预判 · Agent 与引用校验</h2>
+
+  <div class="q"><div class="qt">覆盖度具体怎么算？会不会 LLM 自己说"覆盖了"就过？</div><div class="a">Reflector 先为子问题列出需要的信息点（如"PI 的困惑度""PI 的训练成本"），再逐项判断现有证据是否覆盖，覆盖度=已覆盖/总数。判定我设计成可注入的谓词——可以用 NLI 或 embedding 相似度，不是让 LLM 拍脑袋说"够了"。未覆盖的信息点直接变成下一轮的检索 query，保证补检索有靶子。</div></div>
+
+  <div class="q"><div class="qt">NLI 校验会不会太慢？延迟能接受吗？</div><div class="a">DeBERTa-NLI 单对约 15ms，GPU 批量推理。一个答案通常 10-20 句，批处理一次就算完，加在生成之后对总延迟影响小。而且它只在深度研究/高价值答案上必跑，快速问答可配置开关。</div></div>
+
+  <div class="q"><div class="qt">NLI 判成"不蕴含"但其实是对的（误杀）怎么办？</div><div class="a">这是 precision/recall 的权衡。我的策略：阈值按 <em>Precision 优先</em> 标定（宁可漏标一些真引用，也别放过假引用，因为学术场景假引用代价更高）；不达标的句子先<strong>自动重写一次</strong>而不是直接删，给它一次改正机会；仍不过才标红让用户知道。阈值在人工标注集上定，不是我拍的。</div></div>
+
+  <div class="q"><div class="qt">为什么不直接让 GPT-4 带引用就行，非要加 NLI？</div><div class="a">因为"让模型带引用"和"引用成立"是两回事——模型完全可能给一个格式正确、但内容对不上的 [eid]。受约束生成只能保证 id 合法，保证不了语义蕴含。NLI 是独立的第二道验证，把"相信模型"换成"验证模型"。这正是这个项目和普通 RAG demo 的分水岭。</div></div>
+
+  <div class="q"><div class="qt">LangGraph 相比自己写循环，到底多了什么？</div><div class="a">三样我实际用到的：①<code>interrupt()</code> 让计划阶段能停下来等用户编辑再继续；②checkpoint 持久化，长研究中断了能恢复；③状态在并行子问题分支间的合并（reducer）。自己写循环这些都要手搓且容易出错。<em>诚实补充：我的核心控制逻辑写成了独立的协调器，不强依赖 LangGraph，这样逻辑能单测——LangGraph 是对它的一层绑定。</em></div></div>
+</section>
+
+<!-- 09 -->
+<section id="qa-eng">
+  <h2><span class="no">09</span>问答预判 · 工程与系统设计</h2>
+
+  <div class="q"><div class="qt">为什么用了四个数据库，不嫌重吗？</div><div class="a">每个职责不可替代：Qdrant 存向量做混合检索；Postgres 存元数据、表格四元组（数值问答要跑 SQL）、Agent 的 checkpoint；Neo4j 存引用图（引用是天然的图，多跳扩展比关系库递归 JOIN 自然）；MinIO 存 PDF 原件。<strong>但我也承认 MVP 可以砍</strong>——Qdrant+Postgres+Redis 就能起步，Neo4j（引用图谱是 P1）和 MinIO 可以延后。知道什么时候上什么，比一上来全铺更重要。</div></div>
+
+  <div class="q"><div class="qt">离线解析和在线查询为什么要分开？</div><div class="a">负载特性相反。解析一篇要跑版面检测/公式识别/embedding，重、慢（目标&lt;20s）、可失败重试——必须异步化（Celery+Redis），不能卡在 HTTP 请求里。查询要低延迟流式（首 token P95&lt;1.5s）——走同步 API+SSE。混在一起会互相拖累。</div></div>
+
+  <div class="q"><div class="qt">六边形架构具体怎么落地的？好处是什么？</div><div class="a">所有外部系统定义成 Protocol（Embedder/VectorStore/LLM/NLI…），业务逻辑只依赖接口。每个接口两个实现：真实 adapter（Qdrant 等）和内存 fake。好处立竿见影——① 55 个单测用 fakes 跑，不要 GPU/Docker 就能验证检索/校验/Agent 全链路；② 换向量库只改一个 adapter；③ 一个 composition root 统一装配，环境变量切真假。</div></div>
+
+  <div class="q"><div class="qt">这个系统怎么扩展到百万级论文？瓶颈在哪？</div><div class="a">瓶颈主要两处：①离线解析吞吐——Celery 横向加 worker、GPU 池化；②向量检索延迟——Qdrant 的 payload 过滤下推 + HNSW 参数调优，必要时按 collection 分片。在线侧用语义缓存挡重复查询。元数据过滤在召回阶段就下推到 Qdrant，避免召回一大堆再过滤。</div></div>
+
+  <div class="q"><div class="qt">怎么保证评测可复现？</div><div class="a">评测数据集、Prompt、模型版本统一版本管理，每次评测结果写进 eval_runs 表（带配置快照）。同一个 <code>make eval</code> 命令任何人任何时候跑结果一致。CI 把它接成门禁。</div></div>
+</section>
+
+<!-- 10 -->
+<section id="qa-deep">
+  <h2><span class="no">10</span>问答预判 · 拷打与诚实题</h2>
+  <p>这些是"压力测试"，考你的技术诚实度和边界感。<strong>答这类题的原则：先给真实边界，再给应对，绝不吹。</strong></p>
+
+  <div class="q"><div class="qt">你这些指标（Recall 0.85、引用准确率 0.9）实测跑出来了吗？</div><div class="a">如实说：这些是<strong>设计目标值</strong>，评测框架和消融脚本已经搭好（<code>eval/</code>），数值要在真实模型和数据上跑消融后填入——目前核心逻辑用 fakes 做了端到端验证（55 单测），真实模型联调还在进行。我不会给你一个没跑出来的数字。</div></div>
+
+  <div class="q"><div class="qt">哪部分是你真写了，哪部分还是设计？</div><div class="a">直接给清单：检索/索引/引用校验/研究 Agent/评测的<em>业务逻辑</em>都实现并测过；真实 adapter（Qdrant/Neo4j/BGE/DeBERTa/MinerU）照接口写好、结构契约测过，但与真实服务和模型的联调需要 GPU/Docker 环境；MinerU 的版面产物映射留了明确的 TODO，因为不同版本字段不一样。<em>（见下一章"诚实边界清单"）</em></div></div>
+
+  <div class="q"><div class="qt">如果 MinerU 解析质量不行，你整个系统不就垮了？</div><div class="a">对，解析是上限，这也是我把它排在最高优先级、并用 B0→+1 消融专门量化它的原因。缓解手段：统一 IR 让解析器可替换（MinerU 不行可换 Nougat 等）；解析失败的文件进重试队列；关键是早点用消融数据暴露解析环节的收益/损失，而不是假设它完美。</div></div>
+
+  <div class="q"><div class="qt">这个项目和市面上的 RAG 框架（LangChain 那种）比，你的价值在哪？</div><div class="a">框架给的是通用组件；我的价值在<strong>针对学术场景的端到端设计决策</strong>：版面感知解析、多粒度+上下文切分、四路混合、以及最核心的<em>生成后 NLI 引用校验</em>。拿 LangChain 也能搭个 demo，但"引用可溯源到 bbox 且经过验证"这套反幻觉机制是我自己设计的，不是调个库就有的。</div></div>
+
+  <div class="q"><div class="qt">你一个人做的？哪些是你独立完成的？</div><div class="a">（按真实情况答）如实说明你负责的部分和借助的工具/参考。诚实比"全是我写的"更可信——面试官一追代码细节就露馅。重点讲你<em>做决策</em>的地方：为什么这么切分、为什么加 NLI、为什么选 Qdrant，这些是抄不来的。</div></div>
+
+  <div class="callout"><b>诚实题通用模板：</b>"这部分我<em>做到了 X</em>（具体、可验证）；<em>Y 还没做/是设计</em>（明确边界）；如果要做 Y，我会<em>这样做</em>（给方案）。" —— 三段式既不虚、又展示你想清楚了。</div>
+</section>
+
+<!-- 11 -->
+<section id="boundary">
+  <h2><span class="no">11</span>诚实边界清单</h2>
+  <p>把"实现到什么程度"心里有本账，被问到任何部分都能准确回答，不含糊、不夸大。</p>
+  <table>
+    <thead><tr><th>模块</th><th>状态</th><th>被追问时怎么说</th></tr></thead>
+    <tbody>
+      <tr><td>混合检索 / RRF / 路由</td><td class="mono" style="color:var(--ok)">已实现+测</td><td>RRF、四路编排、父块扩展都有，用 fakes 端到端测过；四路的真实后端是 Qdrant adapter</td></tr>
+      <tr><td>多粒度切分 / 上下文前缀</td><td class="mono" style="color:var(--ok)">已实现+测</td><td>L0-L3 切分实现并测；上下文前缀逻辑在，真实前缀需接 LLM</td></tr>
+      <tr><td>引用校验（NLI）</td><td class="mono" style="color:var(--ok)">已实现+测</td><td>切句/蕴含判定/数值校验/重写/可信度全有；真实判定接 DeBERTa</td></tr>
+      <tr><td>研究 Agent 协调器</td><td class="mono" style="color:var(--ok)">已实现+测</td><td>Plan→Research→Reflect→Write→Verify 完整，覆盖度停止逻辑测过</td></tr>
+      <tr><td>评测（指标/消融/runner）</td><td class="mono" style="color:var(--ok)">已实现+测</td><td>指标纯函数测过，消融矩阵 B0-6 定义好，runner 能跑</td></tr>
+      <tr><td>真实 adapter（Qdrant等）</td><td class="mono" style="color:var(--warn)">写好/契约测</td><td>照接口实现、结构契约测过；与真实服务/模型的功能联调需本地环境</td></tr>
+      <tr><td>MinerU 解析映射</td><td class="mono" style="color:var(--warn)">留 TODO</td><td>IR 映射骨架在，<code>_run_mineru</code> 需按所用 MinerU 版本补字段——诚实说明原因</td></tr>
+      <tr><td>指标数值</td><td class="mono" style="color:var(--bad)">设计目标</td><td>是目标值不是实测，务必强调"以消融实测为准"</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- 12 -->
+<section id="checklist">
+  <h2><span class="no">12</span>面试前自检</h2>
+  <div class="g2">
+    <div class="card">
+      <h4>能不看稿讲出来</h4>
+      <ul>
+        <li>30 秒 / 2 分钟自述各一遍</li>
+        <li>白板画架构（离线/在线分离 → 存储 → 六边形）</li>
+        <li>一个查询从进来到带校验答案的全链路</li>
+        <li>引用校验五步，能讲到代码级</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>每个选型能说清备选局限</h4>
+      <ul>
+        <li>Qdrant vs pgvector（百万级+过滤）</li>
+        <li>RRF vs 加权融合</li>
+        <li>BGE-M3 一次出 dense+sparse 的价值</li>
+        <li>Next.js vs Reflex 的真实权衡</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>数据与诚实</h4>
+      <ul>
+        <li>指标是"目标值"，脱口而出不漏这句</li>
+        <li>实现 vs 设计的边界清单记牢</li>
+        <li>被拷打用三段式：做到X / Y没做 / 会怎么做</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>反问面试官（加分）</h4>
+      <ul>
+        <li>你们线上 RAG 怎么评估幻觉？</li>
+        <li>检索和生成的延迟预算怎么分？</li>
+        <li>长文档/多跳问题你们怎么处理？</li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout"><b>最后一句心态提醒：</b>这个项目真正的深度在"<em>为什么这么做</em>"和"<em>我验证了没有</em>"，不在"用了多少技术名词"。把决策讲透、把边界讲诚实，比背参数更能打动懂行的面试官。</div>
+</section>
+
+<footer>
+  <span>ScholarLens · 面试准备手册 · v1.0</span>
+  <span>2026-11 · 答案与真实实现一致，指标为设计目标</span>
+</footer>
+</div></main>
+</body>
+</html>

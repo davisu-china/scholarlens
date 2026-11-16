@@ -104,7 +104,9 @@ uv run celery -A apps.worker.celery_app worker -l info
 
 - **Part I 产品需求**：项目概述、目标用户与场景、功能需求、交互与页面、非功能指标
 - **Part II 技术实现**：系统架构、文档解析流水线、多粒度索引、混合检索与重排、深度研究 Agent、引用校验与反幻觉、评测体系、技术栈与工程
-- **Part III 交付**：风险与对策、面试亮点
+- **Part III 交付**：里程碑、风险与对策
+
+面试准备手册见 [`docs/ScholarLens_Interview_Prep.html`](docs/ScholarLens_Interview_Prep.html)：项目解读与叙事线、亮点、技术挑战、选型调研、评测工作，以及高频问题的预判与标准回答。
 
 ## 状态
 

@@ -164,7 +164,6 @@ footer{margin-top:100px;padding-top:30px;border-top:1px solid var(--line);color:
   <h6>Part III · 交付</h6>
   <a href="#plan"><span>14</span>里程碑</a>
   <a href="#risk"><span>15</span>风险与对策</a>
-  <a href="#interview"><span>16</span>面试亮点</a>
 </nav>
 
 <main><div class="wrap">
@@ -611,7 +610,7 @@ app = g.compile(checkpointer=PostgresSaver(pool), interrupt_after=[<span class="
 </section>
 <section id="eval">
   <h2><span class="no">12</span>评测体系</h2>
-  <p class="lead">只用公开基准和可复现的脚本。每项优化都要通过消融实验证明收益，这也是面试时最有说服力的部分。</p>
+  <p class="lead">只用公开基准和可复现的脚本。每项优化都要通过消融实验证明收益。</p>
   <h3>数据集</h3>
   <table>
     <thead><tr><th>数据集</th><th>内容</th><th>评测什么</th></tr></thead>
@@ -710,19 +709,6 @@ app = g.compile(checkpointer=PostgresSaver(pool), interrupt_after=[<span class="
       <tr><td>论文版权</td><td>无法公开演示</td><td>演示只用 arXiv 上开放许可的论文</td></tr>
     </tbody>
   </table>
-</section>
-<section id="interview">
-  <h2><span class="no">16</span>面试亮点与高频追问</h2>
-  <p class="lead">把项目拆成 5 个可以独立深挖的技术点，每个点都准备好"为什么这么做、数据如何、踩过什么坑"。</p>
-  <div class="g2">
-    <div class="card"><h4>① 学术 PDF 解析</h4><p><strong>追问：</strong>双栏排版和公式怎么处理？为什么不用 Unstructured？<br><strong>答点：</strong>版面检测 + XY-Cut 确定阅读顺序；公式转 LaTeX 并配自然语言描述；统一 IR 与解析器解耦；B0 → +1 的消融数据。</p></div>
-    <div class="card"><h4>② 混合检索</h4><p><strong>追问：</strong>为什么用 RRF 而不是加权融合？Sparse 解决了什么问题？<br><strong>答点：</strong>不同召回路的分数尺度不可比；模型名、数据集名这类专有名词靠 Sparse 召回；举一个 Dense 漏召回的 bad case。</p></div>
-    <div class="card"><h4>③ 深度研究 Agent</h4><p><strong>追问：</strong>Agent 怎么知道何时停止？成本如何控制？<br><strong>答点：</strong>按信息点计算覆盖度、最多 3 轮、大小模型分工、子问题并行、checkpoint 支持中断后恢复。</p></div>
-    <div class="card"><h4>④ 引用校验</h4><p><strong>追问：</strong>怎么保证引用不是编造的？NLI 阈值怎么定？<br><strong>答点：</strong>生成时约束 eid 合法、生成后做 NLI 蕴含判定、数值规则校验、在人工标注集上标定阈值、引用精确到 bbox。</p></div>
-    <div class="card"><h4>⑤ 评测驱动迭代</h4><p><strong>追问：</strong>怎么证明你的优化有效？<br><strong>答点：</strong>公开基准 + 自建集、消融表格、CI 评测门禁、bad case 四类归因、线上反馈闭环。</p></div>
-    <div class="card"><h4>⑥ 工程取舍</h4><p><strong>追问：</strong>为什么选 Qdrant / LangGraph / Next.js？<br><strong>答点：</strong>见 06 章的决策表。能讲清楚各个备选方案的局限，比只说用了什么更重要。</p></div>
-  </div>
-  <div class="callout"><b>简历一句话版本：</b>设计并实现面向学术文献的 Agentic RAG 系统 ScholarLens。通过版面感知解析、Contextual Chunking、混合检索与微调重排，在 QASPER 上把证据召回提升到 X%；基于 LangGraph 构建可中断的深度研究 Agent；引入 NLI 句级引用校验，使引用准确率达到 Y%。后端 Python（FastAPI + LangGraph），前端 Next.js + shadcn/ui。</div>
 </section>
 
 <footer>
