@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { fetchModels } from "@/lib/api";
 import { useSession } from "@/store/session";
 
-type M = { id: string; label: string; description: string; tier: string };
+type M = { id: string; label: string; description: string; tier: string; locked: boolean };
 
 /** 模型选择器（商业化：让用户在 Opus / DeepSeek 等之间自选）。 */
 export function ModelPicker() {
@@ -13,7 +13,7 @@ export function ModelPicker() {
   useEffect(() => {
     fetchModels().then((d) => {
       setModels(d.models);
-      if (!model && d.default) setModel(d.default);
+      if (d.default) setModel(d.default);
     });
   }, [model, setModel]);
 
@@ -28,7 +28,9 @@ export function ModelPicker() {
         className="rounded-md border border-line bg-surface px-2 py-1 text-[#e7e9ef] outline-none focus:border-accent"
       >
         {models.map((m) => (
-          <option key={m.id} value={m.id}>{m.label}</option>
+          <option key={m.id} value={m.id} disabled={m.locked}>
+            {m.label}{m.locked ? "（需升级）" : ""}
+          </option>
         ))}
       </select>
     </label>

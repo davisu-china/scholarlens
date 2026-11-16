@@ -1,5 +1,6 @@
 "use client";
 import { Library, MessageSquarePlus } from "lucide-react";
+import { BillingBadge } from "@/components/billing-badge";
 
 /** 左栏：Collections + Sessions。PRD「知识库管理」。 */
 export function KnowledgePanel() {
@@ -30,6 +31,8 @@ export function KnowledgePanel() {
           + 新研究
         </button>
       </section>
+
+      <BillingBadge />
     </aside>
   );
 }

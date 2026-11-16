@@ -1,3 +1,5 @@
+const USER_HEADER = { "X-User-Id": "demo" };
+
 import { streamSSE } from "./sse";
 import type { QADone, ResearchAnswer, TraceEvent } from "./types";
 
@@ -8,6 +10,7 @@ export async function askQuestion(
 ): Promise<void> {
   for await (const ev of streamSSE("/api/query", {
     method: "POST",
+    headers: USER_HEADER,
     body: JSON.stringify({ question, collection: opts.collection, model: opts.model }),
   })) {
     if (ev.event === "token") opts.onToken(ev.data);
@@ -22,6 +25,7 @@ export async function deepResearch(
 ): Promise<void> {
   for await (const ev of streamSSE("/api/research", {
     method: "POST",
+    headers: USER_HEADER,
     body: JSON.stringify({ question, approved_plan: opts.approvedPlan, model: opts.model }),
   })) {
     if (ev.event === "answer") opts.onAnswer(JSON.parse(ev.data) as ResearchAnswer);
@@ -35,6 +39,22 @@ export async function fetchCitationGraph(paperId: string) {
 }
 
 export async function fetchModels() {
-  const r = await fetch("/api/models");
-  return r.json() as Promise<{ default: string | null; models: { id: string; label: string; description: string; tier: string }[] }>;
+  const r = await fetch("/api/models", { headers: USER_HEADER });
+  return r.json() as Promise<{ default: string | null; plan: string; models: { id: string; label: string; description: string; tier: string; locked: boolean }[] }>;
+}
+
+export async function fetchBilling() {
+  const r = await fetch("/api/billing/overview", { headers: USER_HEADER });
+  return r.json() as Promise<{
+    plan: { id: string; name: string; price_cny_per_month: number };
+    quotas: { action: string; window: string; limit: number; used: number; remaining: number }[];
+    usage: { by_action: Record<string, number>; by_model: Record<string, number>; cost_cny: number };
+  }>;
+}
+
+export async function setPlan(planId: string) {
+  await fetch("/api/billing/plan", {
+    method: "POST", headers: { "Content-Type": "application/json", ...USER_HEADER },
+    body: JSON.stringify({ plan_id: planId }),
+  });
 }

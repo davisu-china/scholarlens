@@ -8,7 +8,9 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from pydantic import BaseModel
 
-from apps.api.deps import get_container
+from apps.api.deps import get_billing, get_container, get_user
+from core.billing.plans import ACTION_INGEST_PAGES
+from core.billing.service import BillingService, QuotaExceeded
 from core.container import Container
 
 router = APIRouter()
@@ -23,13 +25,24 @@ class IngestResponse(BaseModel):
 
 
 @router.post("/upload")
-async def upload(files: list[UploadFile], c: Container = Depends(get_container)) -> list[IngestResponse]:
+async def upload(
+    files: list[UploadFile],
+    c: Container = Depends(get_container),
+    user: str = Depends(get_user),
+    billing: BillingService = Depends(get_billing),
+) -> list[IngestResponse]:
     if c.parser is None:
         raise HTTPException(503, "未配置 PDF 解析器：请在 .env 中设置 SL_MINERU_API_TOKEN")
     out: list[IngestResponse] = []
     for f in files:
         paper = await c.parser.parse(await f.read(), source_hint=f.filename)
+        pages = max((bb.page for b in paper.blocks for bb in b.bboxes), default=1)
+        try:
+            await billing.check_quota(user, ACTION_INGEST_PAGES, units=pages)
+        except QuotaExceeded as e:
+            raise HTTPException(429, str(e)) from e
         report = await c.indexer.index_paper(paper)
+        await billing.record(user, ACTION_INGEST_PAGES, units=pages)
         out.append(
             IngestResponse(
                 paper_id=paper.paper_id,

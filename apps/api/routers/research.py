@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
-from apps.api.deps import get_container
+from apps.api.deps import get_billing, get_container, get_user
+from core.billing.plans import ACTION_RESEARCH
+from core.billing.service import BillingService, ModelNotAllowed, QuotaExceeded
 from core.container import Container
 
 router = APIRouter()
@@ -22,7 +24,20 @@ class ResearchRequest(BaseModel):
 
 
 @router.post("")
-async def research(req: ResearchRequest, c: Container = Depends(get_container)) -> EventSourceResponse:
+async def research(
+    req: ResearchRequest,
+    c: Container = Depends(get_container),
+    user: str = Depends(get_user),
+    billing: BillingService = Depends(get_billing),
+) -> EventSourceResponse:
+    try:
+        await billing.check_model(user, req.model)
+        await billing.check_quota(user, ACTION_RESEARCH)
+    except ModelNotAllowed as e:
+        raise HTTPException(403, str(e)) from e
+    except QuotaExceeded as e:
+        raise HTTPException(429, str(e)) from e
+
     async def gen():
         result = await c.coordinator.run(req.question, approved_plan=req.approved_plan, model=req.model)
         for step in result.trace:
@@ -39,5 +54,6 @@ async def research(req: ResearchRequest, c: Container = Depends(get_container)) 
                 ensure_ascii=False,
             ),
         }
+        await billing.record(user, ACTION_RESEARCH, model_id=req.model)
 
     return EventSourceResponse(gen())

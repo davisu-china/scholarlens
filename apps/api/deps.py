@@ -26,3 +26,24 @@ def get_container() -> Container:
 
         parser = MinerUCloudParser()
     return build_container(parser=parser)
+
+
+# --- 计费（雏形）---
+from fastapi import Header  # noqa: E402
+
+from core.billing.service import BillingService  # noqa: E402
+from core.billing.store import InMemorySubscriptionStore, InMemoryUsageStore  # noqa: E402
+
+_SUBS = InMemorySubscriptionStore()
+_USAGE = InMemoryUsageStore()
+
+
+@lru_cache
+def get_billing() -> BillingService:
+    """计费服务单例（内存存储；生产换 Postgres 实现同一组 port）。"""
+    return BillingService(_SUBS, _USAGE)
+
+
+async def get_user(x_user_id: str = Header(default="demo")) -> str:
+    """从请求头解析用户。雏形用 X-User-Id；生产换 JWT 的 sub。"""
+    return x_user_id
