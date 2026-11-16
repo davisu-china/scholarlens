@@ -30,14 +30,12 @@ def ingest_paper(self, minio_key: str) -> dict:
 
 async def _ingest(minio_key: str) -> dict:
     from core.adapters.minio_blob import MinioBlobStore
-    from core.adapters.mineru_parser import MinerUParser
     from core.adapters.real import build_real_container
 
     blob = MinioBlobStore()
     pdf = await blob.get(minio_key)
-    paper = await MinerUParser().parse(pdf, source_hint=minio_key)
-
     container = build_real_container()
+    paper = await container.parser.parse(pdf, source_hint=minio_key)
     report = await container.indexer.index_paper(paper)
     return {
         "paper_id": report.paper_id,

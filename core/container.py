@@ -17,6 +17,7 @@ from core.ports import (
     GraphStore,
     LLMClient,
     NLIModel,
+    Parser,
     Reranker,
     TableStore,
     VectorStore,
@@ -41,6 +42,7 @@ class Container:
     indexer: Indexer
     qa: QAService
     coordinator: ResearchCoordinator
+    parser: Parser | None = None   # PDF 解析器；未配置时 /ingest 无法解析
 
 
 def build_container(
@@ -52,6 +54,7 @@ def build_container(
     table_store: TableStore | None = None,
     graph_store: GraphStore | None = None,
     nli: NLIModel | None = None,
+    parser: Parser | None = None,
 ) -> Container:
     """任何未显式注入的 port 都用 fake 兜底。生产环境把真实 adapter 传进来即可。"""
     embedder = embedder or fakes.FakeEmbedder()
@@ -94,4 +97,5 @@ def build_container(
         indexer=indexer,
         qa=qa,
         coordinator=coordinator,
+        parser=parser,
     )

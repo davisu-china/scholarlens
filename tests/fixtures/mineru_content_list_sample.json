@@ -1,0 +1,369 @@
+[
+ {
+  "type": "text",
+  "text": "EXTENDING CONTEXT WINDOW OF LARGE LAN-GUAGE MODELS VIA POSITION INTERPOLATION",
+  "text_level": 1,
+  "bbox": [
+   171,
+   98,
+   823,
+   146
+  ],
+  "page_idx": 0
+ },
+ {
+  "type": "text",
+  "text": "Shouyuan Chen Sherman Wong Liangjian Chen Yuandong Tian Meta Platforms Inc.",
+  "bbox": [
+   179,
+   170,
+   694,
+   199
+  ],
+  "page_idx": 0
+ },
+ {
+  "type": "text",
+  "text": "{chenshouyuan,shermanwong,clj,yuandong}@meta.com",
+  "bbox": [
+   181,
+   198,
+   653,
+   213
+  ],
+  "page_idx": 0
+ },
+ {
+  "type": "text",
+  "text": "ABSTRACT",
+  "text_level": 2,
+  "bbox": [
+   450,
+   250,
+   547,
+   263
+  ],
+  "page_idx": 0
+ },
+ {
+  "type": "text",
+  "text": "We present Position Interpolation (PI) that extends the context window sizes of RoPE-based (Su et al., 2021) pretrained LLMs such as LLaMA (Touvron et al., 2023) models to up to 32768 with minimal fine-tuning (within 1000 steps), while demonstrating strong empirical results on various tasks that require long context, including passkey retrieval, language modeling, and long document summarization from LLaMA 7B to 65B. Meanwhile, the extended model by Position Interpolation preserve quality relatively well on tasks within its original context window. To achieve this goal, Position Interpolation linearly down-scales the input position indices to match the original context window size, rather than extrapolating beyond the trained context length which may lead to catastrophically high attention scores that completely ruin the self-attention mechanism. Our theoretical study shows that the upper bound of interpolation is at least ∼ 600× smaller than that of extrapolation, further demonstrating its stability. Models extended via Position Interpolation retain its original architecture and can reuse most pre-existing optimization and infrastructure.",
+  "bbox": [
+   230,
+   282,
+   767,
+   492
+  ],
+  "page_idx": 0
+ },
+ {
+  "type": "text",
+  "text": "1 INTRODUCTION",
+  "text_level": 2,
+  "bbox": [
+   174,
+   522,
+   336,
+   537
+  ],
+  "page_idx": 0
+ },
+ {
+  "type": "text",
+  "text": "Large language models (LLMs) typically come with a pre-defined context window size. For example, inputs to LLaMA models (Touvron et al., 2023) must be fewer than 2048 tokens. This pre-set context window limit is frequently exceeded in applications such as conducting long conversations, summarizing long documents, or executing long-term planning. For these applications, LLMs with longer context windows are preferred. However, training an LLM from scratch with long context windows requires significant investments. This naturally leads to a question: Can we extend the context window of an existing pre-trained LLM?",
+  "bbox": [
+   169,
+   554,
+   825,
+   652
+  ],
+  "page_idx": 0
+ },
+ {
+  "type": "text",
+  "text": "One straightforward approach is to fine-tune an existing pre-trained Transformer with a longer context window. However, empirically, we found that models trained this way adapt to long context windows very slowly. After training for more than 10000 batches, the effective context window saw a minimal increase, moving from 2048 to 2560 (Table 4). This suggests that such method is inefficient for extending to substantially longer context windows.",
+  "bbox": [
+   169,
+   659,
+   825,
+   729
+  ],
+  "page_idx": 0
+ },
+ {
+  "type": "text",
+  "text": "While certain techniques such as ALiBi (Press et al., 2022) and LeX (Sun et al., 2022) enable length extrapolation of Transformers, i.e. train on short context windows and inference on longer ones, many existing pre-trained LLMs, including LLaMA (Touvron et al., 2023), use positional encodings that have weak extrapolation properties (e.g., RoPE (Su et al., 2021)). Therefore, the applicability of these techniques for extending the context window sizes of such LLMs remains limited.",
+  "bbox": [
+   169,
+   734,
+   825,
+   806
+  ],
+  "page_idx": 0
+ },
+ {
+  "type": "text",
+  "text": "In this work, we introduce Position Interpolation to enable context window extensions for certain existing pre-trained LLMs, including LLaMA. The key idea is, instead of extrapolation, we directly down-scale the position indices so that the maximum position index matches the previous context window limit in the pre-training stage. See Figure 1 for an illustration. In other words, to accommodate more input tokens, we interpolate the position encodings at neighboring integer positions, utilizing the fact that position encodings can be applied on non-integer positions, as opposed to extrapolating outside the trained positions, which may lead to catastrophic values. We verify our approach theoretically, by showing that the interpolated attention score has a much smaller upper bound (∼ 600× smaller in LLaMA 7B setting) than the extrapolated one, and is thus much more stable. Therefore, interpolated position encodings are easier for the model to adapt.",
+  "bbox": [
+   169,
+   813,
+   826,
+   925
+  ],
+  "page_idx": 0
+ },
+ {
+  "type": "aside_text",
+  "text": "arXiv:2306.15595v2 [cs.CL] 28 Jun 2023",
+  "bbox": [
+   22,
+   268,
+   58,
+   705
+  ],
+  "page_idx": 0
+ },
+ {
+  "type": "page_number",
+  "text": "1",
+  "bbox": [
+   493,
+   948,
+   504,
+   959
+  ],
+  "page_idx": 0
+ },
+ {
+  "type": "chart",
+  "img_path": "images/eaeefa9047e7aa144b3d391b7ffc46d8d43d90f33de6e1ce492958d3e976bbe6.jpg",
+  "content": "",
+  "chart_caption": [
+   "Figure 1: An illustration of our Position Interpolation method. Consider a Llama model pre-trained with a 2048 context window length. Upper left illustrates the normal usage of an LLM model: input position indices (blue dots) are within the pre-trained range. Upper right illustrates length extrapolation where models are required to operate unseen positions (red dots) up to 4096. Lower left illustrates Position Interpolation where we downscale the position indices (blue and green dots) themselves from [0, 4096] to [0, 2048] to force them to reside in the pretrained range."
+  ],
+  "chart_footnote": [],
+  "bbox": [
+   174,
+   104,
+   803,
+   351
+  ],
+  "page_idx": 1
+ },
+ {
+  "type": "text",
+  "text": "",
+  "bbox": [
+   169,
+   513,
+   825,
+   544
+  ],
+  "page_idx": 1
+ },
+ {
+  "type": "text",
+  "text": "Empirically, we found that Position Interpolation is highly effective and efficient, requiring only a very short period of fine-tuning for the model to fully adapt to greatly extended context windows. We present experimental results for extending the context window to up to 32768 from the initial 2048 across 7B to 65B LLaMA models using Position Interpolation. Our results show that",
+  "bbox": [
+   169,
+   550,
+   826,
+   608
+  ],
+  "page_idx": 1
+ },
+ {
+  "type": "text",
+  "text": "1. Position Interpolation can easily enable very long context windows (e.g. 32768), requiring only fine-tuning for 1000 steps on the Pile (Gao et al., 2020) to achieve a good quality. The cost of fine-tuning is negligible compared to the pre-training costs. This confirms our hypothesis that it is relatively easy for the models to adapt to interpolated position encodings.",
+  "bbox": [
+   210,
+   619,
+   826,
+   689
+  ],
+  "page_idx": 1
+ },
+ {
+  "type": "text",
+  "text": "2. Position Interpolation generates strong models that can effectively make use of much extended context window. We show that models extended by Position Interpolation enjoy significant perplexity gains from greatly extended context windows for text modeling, and we show that the perplexity reduces graceful with the enlargement of context windows. We also applied Position Interpolation in a long text summarization task, and demonstrate competitive performances.",
+  "bbox": [
+   209,
+   695,
+   826,
+   780
+  ],
+  "page_idx": 1
+ },
+ {
+  "type": "text",
+  "text": "3. Position Interpolation preserves model quality relatively well for tasks within its original context window sizes. We present a variety of evaluation results for the extended LLaMA models on the original LLaMA benchmark. Compared with original LLaMA models, the extended LLaMA models saw a minor degradation on several standard benchmarks within a 2048 token limit.",
+  "bbox": [
+   209,
+   785,
+   826,
+   856
+  ],
+  "page_idx": 1
+ },
+ {
+  "type": "text",
+  "text": "Our results highlight the innate ability of Transformer models to “extrapolate to sequence lengths longer than the ones encountered during training” as hypothesized in the seminal work of Vaswani et al. (2017). We reaffirm this hypothesis and suggest that the previously known weakness of extrapolating to longer sequences for language modeling (Press et al., 2022) may be due to direct extrapolation of positional encodings and it can be largely mitigated by interpolating position encodings instead.",
+  "bbox": [
+   169,
+   867,
+   826,
+   925
+  ],
+  "page_idx": 1
+ },
+ {
+  "type": "page_number",
+  "text": "2",
+  "bbox": [
+   493,
+   948,
+   504,
+   959
+  ],
+  "page_idx": 1
+ },
+ {
+  "type": "text",
+  "text": "2 METHOD",
+  "text_level": 2,
+  "bbox": [
+   171,
+   270,
+   284,
+   286
+  ],
+  "page_idx": 2
+ },
+ {
+  "type": "text",
+  "text": "2.1 BACKGROUND: ROTARY POSITION EMBEDDING (ROPE)",
+  "text_level": 2,
+  "bbox": [
+   171,
+   301,
+   606,
+   316
+  ],
+  "page_idx": 2
+ },
+ {
+  "type": "equation",
+  "text": "$$\n\\mathbf {f} (\\mathbf {x}, m) = [ (x _ {0} + \\mathrm{i} x _ {1}) e ^ {\\mathrm{i} m \\theta_ {0}}, (x _ {2} + \\mathrm{i} x _ {3}) e ^ {\\mathrm{i} m \\theta_ {1}}, \\ldots , (x _ {d - 2} + \\mathrm{i} x _ {d - 1}) e ^ {\\mathrm{i} m \\theta_ {d / 2 - 1}} ] ^ {\\top}\\tag{1}\n$$",
+  "text_format": "latex",
+  "bbox": [
+   235,
+   414,
+   759,
+   431
+  ],
+  "page_idx": 2
+ },
+ {
+  "type": "equation",
+  "text": "$$\n\\begin{array}{r c l} a (m, n) & = & \\operatorname{Re} \\langle \\mathbf {f} (\\mathbf {q}, m), \\mathbf {f} (\\mathbf {k}, n) \\rangle \\\\ & = & \\operatorname{Re} \\left[ \\sum_ {j = 0} ^ {d / 2 - 1} (q _ {2 j} + \\mathrm{i} q _ {2 j + 1}) (k _ {2 j} - \\mathrm{i} k _ {2 j + 1}) e ^ {\\mathrm{i} (m - n) \\theta_ {j}} \\right] \\\\ & = & \\sum_ {j = 0} ^ {d / 2 - 1} (q _ {2 j} k _ {2 j} + q _ {2 j + 1} k _ {2 j + 1}) \\cos ((m - n) \\theta_ {j}) + (q _ {2 j} k _ {2 j + 1} - q _ {2 j + 1} k _ {2 j}) \\sin ((m - n) \\theta_ {j}) \\\\ & =: & a (m - n) \\end{array} \\tag {2}\n$$",
+  "text_format": "latex",
+  "bbox": [
+   171,
+   457,
+   851,
+   588
+  ],
+  "page_idx": 2
+ },
+ {
+  "type": "text",
+  "text": "2.2 DIRECT EXTRAPOLATION",
+  "text_level": 2,
+  "bbox": [
+   171,
+   652,
+   395,
+   667
+  ],
+  "page_idx": 2
+ },
+ {
+  "type": "chart",
+  "img_path": "images/83a698798af18178584c8b991a0fc967ac771a44238461152cab96dd703a9fde.jpg",
+  "content": "",
+  "chart_caption": [],
+  "chart_footnote": [],
+  "bbox": [
+   171,
+   109,
+   385,
+   277
+  ],
+  "page_idx": 3
+ },
+ {
+  "type": "table",
+  "img_path": "images/4a8d7021c5e294e6e9aa2e6d5fd7f874e9af6ad76fd1e9b8ecd046cae2d19ed9.jpg",
+  "table_caption": [
+   "In Table 3 we report the relationship between perplexity and the number of fine-tuning steps for LLaMA 7B model extending to 8192 and 16384 context window sizes using Position Interpolation evaluated on the PG19 dataset. We can see without fine-tuning (at step 0) the model can exhibit certain language modeling capability, as indicated by $< 2 0$ perplexity for extending to 8192 context window (in contrast, the direct extrapolation method leads $\\mathrm { t o } \\dot { > } 1 0 ^ { 3 }$ perplexity). With fine-tuning, we observed that the perplexity improves quickly. At 200 steps the models surpassed the original model’s perplexity on 2048 context window size, indicating the models gaining ability of effectively using sequences longer than the pre-training settings for language modeling. At 1000 steps, we can see the models have improved steadily and achieve a significantly better perplexity.",
+   "Table 1: Evaluation perplexity on PG19 dataset (Rae et al., 2020). FT: Direct Fine-tuning. PI: Position Interpolation. Model fine-tuned with PI shows progressively lower perplexity with longer context window, showing that PI can leverage long context well, while the perplexity of FT increases over longer window. Note that overall the perplexity is higher compared to Table 2 since PG19 has very different writing styles."
+  ],
+  "table_footnote": [],
+  "table_body": "<table><tr><td rowspan=\"2\">Size</td><td rowspan=\"2\">Model Context Window</td><td rowspan=\"2\">Method</td><td colspan=\"5\">Evaluation Context Window Size</td></tr><tr><td>2048</td><td>4096</td><td>8192</td><td>16384</td><td>32768</td></tr><tr><td>7B</td><td>2048</td><td>None</td><td>7.20</td><td> $>10^3$ </td><td> $>10^3$ </td><td> $>10^3$ </td><td> $>10^3$ </td></tr><tr><td>7B</td><td>8192</td><td>FT</td><td>7.21</td><td>7.34</td><td>7.69</td><td>-</td><td>-</td></tr><tr><td>7B</td><td>8192</td><td>PI</td><td>7.13</td><td>6.96</td><td>6.95</td><td>-</td><td>-</td></tr><tr><td>7B</td><td>16384</td><td>PI</td><td>7.11</td><td>6.93</td><td>6.82</td><td>6.83</td><td>-</td></tr><tr><td>7B</td><td>32768</td><td>PI</td><td>7.23</td><td>7.04</td><td>6.91</td><td>6.80</td><td>6.77</td></tr><tr><td>13B</td><td>2048</td><td>None</td><td>6.59</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>13B</td><td>8192</td><td>FT</td><td>6.56</td><td>6.57</td><td>6.69</td><td>-</td><td>-</td></tr><tr><td>13B</td><td>8192</td><td>PI</td><td>6.55</td><td>6.42</td><td>6.42</td><td>-</td><td>-</td></tr><tr><td>13B</td><td>16384</td><td>PI</td><td>6.56</td><td>6.42</td><td>6.31</td><td>6.32</td><td>-</td></tr><tr><td>13B</td><td>32768</td><td>PI</td><td>6.54</td><td>6.40</td><td>6.28</td><td>6.18</td><td>6.09</td></tr><tr><td>33B</td><td>2048</td><td>None</td><td>5.82</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>33B</td><td>8192</td><td>FT</td><td>5.88</td><td>5.99</td><td>6.21</td><td>-</td><td>-</td></tr><tr><td>33B</td><td>8192</td><td>PI</td><td>5.82</td><td>5.69</td><td>5.71</td><td>-</td><td>-</td></tr><tr><td>33B</td><td>16384</td><td>PI</td><td>5.87</td><td>5.74</td><td>5.67</td><td>5.68</td><td>-</td></tr><tr><td>65B</td><td>2048</td><td>None</td><td>5.49</td><td>-</td><td>-</td><td>-</td><td>-</td></tr><tr><td>65B</td><td>8192</td><td>PI</td><td>5.42</td><td>5.32</td><td>5.37</td><td>-</td><td>-</td></tr></table>",
+  "bbox": [
+   225,
+   277,
+   771,
+   585
+  ],
+  "page_idx": 6
+ },
+ {
+  "type": "code",
+  "sub_type": "code",
+  "code_caption": [
+   "Table 4: Effective context window sizes after fine-tuning. FT: Direct fine-tuning. PI: Position Interpolation."
+  ],
+  "code_body": "```txt\nThere is an important info hidden inside a lot of irrelevant text. Find it and memorize them. I will quiz you about the important information there.\nThe grass is green. The sky is blue. The sun is yellow. Here we go. There and back again. (repeat X times)\nThe pass key is 12345. Remember it. 12345 is the pass key.\nThe grass is green. The sky is blue. The sun is yellow. Here we go. There and back again. (repeat Y times)\nWhat is the pass key? The pass key is\n```",
+  "bbox": [
+   171,
+   434,
+   808,
+   551
+  ],
+  "page_idx": 8
+ },
+ {
+  "type": "ref_text",
+  "text": "Joshua Ainslie, Tao Lei, Michiel de Jong, Santiago Ontan˜on, Siddhartha Brahma, Yury Zemlyanskiy,´ David Uthus, Mandy Guo, James Lee-Thorp, Yi Tay, Yun-Hsuan Sung, and Sumit Sanghai. Colt5: Faster long-range transformers with conditional computation, 2023.",
+  "bbox": [
+   173,
+   191,
+   823,
+   234
+  ],
+  "page_idx": 11
+ },
+ {
+  "type": "ref_text",
+  "text": "Zhangir Azerbayev, Edward Ayers, and Bartosz Piotrowski. Proof-pile, 2022. URL https:// github.com/zhangir-azerbayev/proof-pile.",
+  "bbox": [
+   173,
+   241,
+   823,
+   270
+  ],
+  "page_idx": 11
+ },
+ {
+  "type": "ref_text",
+  "text": "Iz Beltagy, Matthew E. Peters, and Arman Cohan. Longformer: The long-document transformer. 2020.",
+  "bbox": [
+   173,
+   277,
+   823,
+   305
+  ],
+  "page_idx": 11
+ }
+]

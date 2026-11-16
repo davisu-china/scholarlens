@@ -16,7 +16,11 @@ BlockType = Literal["text", "equation", "table", "figure", "caption"]
 
 
 class BBox(BaseModel):
-    """PDF 坐标系下的坐标框，前端用于原文高亮。"""
+    """页面坐标框，前端用于原文高亮。
+
+    page 从 1 开始；坐标按页面尺寸归一化到 0–1000（MinerU 的输出约定），
+    前端按「渲染页宽高 / 1000」缩放。
+    """
 
     page: int
     x0: float

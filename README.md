@@ -56,7 +56,7 @@ scholarlens/
 │   └── llm/       prompt 模板（LiteLLM adapter 在 adapters/）
 ├── eval/          数据集加载器、指标、消融矩阵、CLI
 ├── deploy/        docker-compose.yml（Postgres/Qdrant/Neo4j/MinIO/Redis）
-└── tests/         55 个单测，全绿
+└── tests/         67 个单测，全绿
 ```
 
 ## 架构：六边形（Ports & Adapters）
@@ -78,7 +78,7 @@ scholarlens/
 
 ```bash
 uv sync --extra dev
-uv run pytest -q                                   # 55 个测试
+uv run pytest -q                                   # 67 个测试
 uv run uvicorn apps.api.main:app --reload          # :8000，/query /research 直接可用
 cd apps/web && npm install && npm run dev          # :3000
 ```
@@ -93,7 +93,7 @@ uv run uvicorn apps.api.main:app --reload
 uv run celery -A apps.worker.celery_app worker -l info
 ```
 
-> 核心业务逻辑已实现并测试（检索 / 索引 / 引用校验 / 研究 Agent / 评测，55 测试全绿）。
+> 核心业务逻辑已实现并测试（检索 / 索引 / 引用校验 / 研究 Agent / 评测，67 测试全绿）。
 > 真实 adapter（Qdrant/Neo4j/LiteLLM/BGE/DeBERTa/MinerU）照 port 实现、结构契约已测；
 > 其与模型、GPU、外部服务的联调需在本地环境完成——详见
 > [`docs/LOCAL_SETUP.md`](docs/LOCAL_SETUP.md)。
@@ -110,7 +110,7 @@ uv run celery -A apps.worker.celery_app worker -l info
 
 ## 状态
 
-核心功能已实现并测试（六边形架构，fakes 下端到端可跑，55 测试全绿；前端 `next build` 通过）。
+核心功能已实现并测试（六边形架构，fakes 下端到端可跑，67 测试全绿；前端 `next build` 通过）。
 真实 adapter 的外部服务联调待本地环境完成。
 
 ## License

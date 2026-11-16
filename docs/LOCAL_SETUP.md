@@ -146,7 +146,25 @@ asyncio.run(PostgresTableStore().init())          # 建 result_rows 表
 
 Neo4j、MinIO 无需预建（MinIO 的 bucket 首次使用时自动创建）。
 
-### B6. 接入 MinerU（PDF 解析）—— 最关键、最需要动手的一环
+### B6-云. 用 MinerU 云 API 解析（推荐，无需 GPU）
+
+adapter：`core/adapters/mineru_cloud.py`，已用真实论文验证（18 页约 30 秒）。
+
+1. 在 https://mineru.net 的 API 管理页创建 token；
+2. 写进 `.env`（该文件已被 gitignore，**不要**写进 `.env.example` 或代码）：
+   ```ini
+   SL_MINERU_API_TOKEN=你的token
+   ```
+3. 配好后 `/ingest/upload` 直接可用——即使其余组件还在用 fakes：
+   ```bash
+   curl -X POST http://localhost:8000/ingest/upload -F 'files=@paper.pdf'
+   ```
+
+说明：返回的坐标框已归一化到 0–1000、页码从 1 开始；参考文献由 MinerU 直接给出，
+不需要 GROBID。限制：单文件 ≤200MB、≤200 页；每天 1000 页高优先级额度；论文内容会上传到
+MinerU 服务器，未公开的论文请自行评估。没有 token 时才需要下面的本地 MinerU 方案。
+
+### B6-本地. 接入 MinerU（PDF 解析）—— 最关键、最需要动手的一环
 
 adapter：`core/adapters/mineru_parser.py`。这是整个系统**质量的上限**（PRD 第 07 章），也是唯一一个我留了 `NotImplementedError` 需要你按所用 MinerU 版本补全映射的地方。
 

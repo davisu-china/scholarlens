@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     reranker_model: str = "BAAI/bge-reranker-v2-m3"
     nli_model: str = "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli"
 
+    # --- PDF 解析（MinerU 云 API；token 写在 .env，不进仓库）---
+    mineru_api_token: str | None = None
+    mineru_api_base: str = "https://mineru.net"
+    mineru_model_version: str = "vlm"
+
     # --- auth ---
     jwt_secret: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"

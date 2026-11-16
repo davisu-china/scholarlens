@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 from functools import lru_cache
 
+from core.config import settings
 from core.container import Container, build_container
 
 
@@ -18,4 +19,10 @@ def get_container() -> Container:
         from core.adapters.real import build_real_container
 
         return build_real_container()
-    return build_container()
+    # fakes 模式下，只要配置了 MinerU token，PDF 解析就走真实云 API
+    parser = None
+    if settings.mineru_api_token:
+        from core.adapters.mineru_cloud import MinerUCloudParser
+
+        parser = MinerUCloudParser()
+    return build_container(parser=parser)

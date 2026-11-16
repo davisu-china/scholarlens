@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from core.adapters.bge import BGEM3Embedder, BGEReranker
 from core.adapters.litellm_client import LiteLLMClient
+from core.adapters.mineru_cloud import MinerUCloudParser
+from core.adapters.mineru_parser import MinerUParser
 from core.adapters.neo4j_graph import Neo4jGraphStore
 from core.adapters.nli import DebertaNLI
 from core.adapters.postgres_tables import PostgresTableStore
@@ -28,4 +30,10 @@ def build_real_container() -> Container:
         table_store=PostgresTableStore(),
         graph_store=Neo4jGraphStore(),
         nli=DebertaNLI(),
+        parser=default_parser(),
     )
+
+
+def default_parser():
+    """有 MinerU 云 token 就用云解析（无需 GPU），否则用本地 MinerU。"""
+    return MinerUCloudParser() if settings.mineru_api_token else MinerUParser()
