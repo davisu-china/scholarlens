@@ -18,6 +18,7 @@ from pydantic import BaseModel
 
 from core.config import settings
 from core.llm import usage
+from core.obs import langfuse as obs
 
 
 class LiteLLMClient:
@@ -47,6 +48,9 @@ class LiteLLMClient:
             extra["api_base"] = self._api_base
         if self._api_key:
             extra["api_key"] = self._api_key
+        md = obs.current_metadata()
+        if md:
+            extra["metadata"] = md
         return extra
 
     def _meter(self, model: str | None, resp) -> None:

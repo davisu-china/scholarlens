@@ -10,6 +10,13 @@ from apps.api.routers import auth, billing, ingest, models, papers, query, resea
 
 app = FastAPI(title="ScholarLens API", version="0.1.0")
 
+
+@app.on_event("startup")
+async def _enable_observability() -> None:
+    from core.obs.langfuse import setup_langfuse
+
+    setup_langfuse()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],  # Next.js dev

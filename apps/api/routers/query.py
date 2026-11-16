@@ -13,6 +13,7 @@ from core.billing.plans import ACTION_QUERY
 from core.billing.service import BillingService, ModelNotAllowed, QuotaExceeded
 from core.container import Container
 from core.llm import usage
+from core.obs import langfuse as obs
 
 router = APIRouter()
 
@@ -42,6 +43,7 @@ async def query(
 
     async def gen():
         acc = usage.start()
+        obs.set_context(user_id=user, feature="qa")
         async for ev in c.qa.stream(req.question, filters=filters, model=req.model):
             data = ev["data"] if isinstance(ev["data"], str) else json.dumps(ev["data"], ensure_ascii=False)
             yield {"event": ev["event"], "data": data}

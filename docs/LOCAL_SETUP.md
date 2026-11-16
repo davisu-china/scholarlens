@@ -256,7 +256,7 @@ cd apps/web && npm run dev
 
 ## 可观测性（可选，PRD 非功能需求）
 
-- **Langfuse**（LLM 调用 trace / 成本）：自托管后在 `.env` 填 `SL_LANGFUSE_HOST/PUBLIC_KEY/SECRET_KEY`，并在 LiteLLM adapter 里挂 Langfuse callback。
+- **Langfuse**（LLM 调用 trace / token / 成本 / 延迟）：已接入。自托管 Langfuse 后在 `.env` 填 `SL_LANGFUSE_HOST/PUBLIC_KEY/SECRET_KEY` 即自动启用——每次 LLM 调用经 LiteLLM 原生回调上报，并带上用户/功能（qa/research）元数据分组。不填则 no-op。
 - **Prometheus + Grafana**：`prometheus-client` 已在依赖里，给 FastAPI 挂 `/metrics` 后用 Grafana 看面板。
 
 ---
