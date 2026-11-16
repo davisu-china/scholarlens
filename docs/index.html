@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScholarLens · 文档</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0c11;--surface:#12161f;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.14);
+  --text:#e7e9ef;--muted:#98a1b3;--dim:#6b7385;--a1:#8b6cff;--a2:#22d3ee;
+  --grad:linear-gradient(120deg,#8b6cff 0%,#4f8cff 45%,#22d3ee 100%);
+  --sans:"Inter","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --serif:"Noto Serif SC",serif;--mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.7;min-height:100vh;
+  display:flex;align-items:center;justify-content:center;padding:40px 20px}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(900px 500px at 85% -10%,rgba(139,108,255,.16),transparent 60%),
+             radial-gradient(700px 400px at 10% 110%,rgba(34,211,238,.10),transparent 60%);}
+.wrap{position:relative;z-index:1;max-width:760px;width:100%}
+.logo{display:flex;align-items:center;gap:12px;font-weight:800;font-size:22px;margin-bottom:8px}
+.logo b{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+h1{font-family:var(--serif);font-weight:900;font-size:32px;line-height:1.25;margin:14px 0 10px}
+h1 .g{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.lead{color:var(--muted);font-size:15.5px;margin-bottom:30px;max-width:60ch}
+.cards{display:grid;gap:16px}
+a.doc{display:block;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 24px;
+  text-decoration:none;color:inherit;transition:.18s}
+a.doc:hover{border-color:var(--line2);transform:translateY(-2px);background:#171c27}
+a.doc .t{font-size:18px;font-weight:700;display:flex;align-items:center;gap:10px;margin-bottom:6px}
+a.doc .t .ic{font-size:20px}
+a.doc .d{color:var(--muted);font-size:14px}
+a.doc .arrow{float:right;color:var(--a2);font-family:var(--mono)}
+.repo{margin-top:28px;font-size:13.5px;color:var(--dim)}
+.repo a{color:var(--a2);font-family:var(--mono);text-decoration:none}
+.foot{margin-top:18px;color:var(--dim);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">◈ <b>ScholarLens</b></div>
+  <h1>可溯源的<span class="g">学术深度研究引擎</span></h1>
+  <p class="lead">解析论文 PDF、沿引用关系做多跳检索，生成带引用的研究综述——每一句结论都能追溯到原文的页码和坐标框。以下是项目文档。</p>
+
+  <div class="cards">
+    <a class="doc" href="ScholarLens_PRD_Tech.html">
+      <div class="t"><span class="ic">📘</span>PRD & 技术实现文档 <span class="arrow">→</span></div>
+      <div class="d">产品需求、系统架构、解析流水线、多粒度索引、混合检索、深度研究 Agent、引用校验、评测体系与技术栈。</div>
+    </a>
+    <a class="doc" href="ScholarLens_Interview_Prep.html">
+      <div class="t"><span class="ic">🎯</span>面试准备手册 <span class="arrow">→</span></div>
+      <div class="d">项目解读与叙事线、亮点、技术挑战、选型调研、评测工作，以及高频问题的预判与标准回答。</div>
+    </a>
+    <a class="doc" href="https://github.com/davisu-china/scholarlens/blob/main/docs/LOCAL_SETUP.md">
+      <div class="t"><span class="ic">🔧</span>本地接入指南 <span class="arrow">→</span></div>
+      <div class="d">从 fakes 零依赖体验到真实后端接入的完整步骤（基础设施、模型、MinerU、排错表）。</div>
+    </a>
+  </div>
+
+  <div class="repo">源码仓库：<a href="https://github.com/davisu-china/scholarlens">github.com/davisu-china/scholarlens</a></div>
+  <div class="foot">ScholarLens · 文档以设计目标为准，指标以实测为准</div>
+</div>
+</body>
+</html>
