@@ -49,3 +49,19 @@ def test_citation_graph(client):
     r = client.get("/papers/p1/citations")
     assert r.status_code == 200
     assert "nodes" in r.json()
+
+
+def test_research_plan_then_resume(client, auth):
+    """human-in-the-loop：先拿计划，编辑后恢复跑完。"""
+    from apps.api.deps import get_graph_runner
+    get_graph_runner.cache_clear()
+    h = auth(client, "hitl")
+    r1 = client.post("/research/plan", json={"question": "how does yarn extend context"}, headers=h)
+    assert r1.status_code == 200
+    body = r1.json()
+    assert body["thread_id"] and isinstance(body["plan"], list)
+    # 编辑计划后恢复
+    r2 = client.post("/research/resume",
+                     json={"thread_id": body["thread_id"], "approved_plan": body["plan"]}, headers=h)
+    assert r2.status_code == 200
+    assert "event: answer" in r2.text

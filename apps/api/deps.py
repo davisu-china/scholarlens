@@ -76,3 +76,11 @@ async def get_user(authorization: str = Header(default="")) -> str:
         return decode_token(authorization.split(" ", 1)[1].strip())
     except AuthError as e:
         raise HTTPException(401, str(e)) from e
+
+
+@lru_cache
+def get_graph_runner():
+    """深度研究的 LangGraph 驱动器单例（保留 human-in-the-loop 的 thread 状态）。"""
+    from core.agent.graph import ResearchGraphRunner
+
+    return ResearchGraphRunner(get_container().coordinator)
