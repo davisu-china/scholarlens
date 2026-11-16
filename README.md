@@ -1,117 +1,212 @@
 # ScholarLens · 可溯源的学术深度研究引擎
 
-> 面向学术文献的深度研究引擎：解析论文、多粒度索引、混合检索与重排，由 LangGraph Agent 编排生成**句级可溯源**的研究综述——每一条结论都能回溯到原文的页码与坐标框。
+解析论文 PDF、在私有文献库上做混合检索与多跳研究，生成**带引用的研究综述**——
+每一句结论都能回溯到原文的页码与坐标，并经过逐句引用校验。
 
-## 项目简介
+- **可溯源**：答案里每个论断都带 `[eid]` 角标，精确到原文位置
+- **反幻觉**：生成后用 NLI/LLM 逐句校验引用是否成立，不达标的句子重写或标红
+- **深度研究**：Agent 按「证据覆盖度」决定何时停止补检索，输出结构化综述
+- **多模型**：Claude / DeepSeek 等按需切换，支持套餐、配额与用量计量
+- **无需 GPU**：解析、向量化、重排、校验全部可走云 API
 
-ScholarLens 针对学术研究中的三个痛点：
-
-- **解析失真**——PDF 转文本丢失版式、公式、图表结构；
-- **单跳检索不够**——复杂问题需要多跳、跨文献推理；
-- **引用不可信**——LLM 生成的综述常出现无据结论（幻觉）。
-
-通过文档解析流水线、多粒度索引、混合检索 + 重排、深度研究 Agent、引用校验与反幻觉模块，输出可信、可复现、可溯源的研究结果。
-
-## 设计目标
-
-> 以下为设计目标值，最终以评测框架的实测数据为准。
-
-| 维度 | 目标 | 衡量方式 |
-|---|---|---|
-| 检索质量 | 证据段召回率比朴素向量检索提升 ≥ 25% | QASPER evidence Recall@10，消融实验 |
-| 答案可信 | 引用准确率 ≥ 0.90，无据结论 < 5% | NLI 自动校验 + 人工抽检 |
-| 研究效率 | 生成 3000 字综述 < 3 分钟 | 端到端计时，LangSmith / Langfuse trace |
-| 工程质量 | 一键部署、可观测、可复现评测 | — |
+---
 
 ## 技术栈
 
-- **语言**：Python 3.12 全栈
-- **后端**：FastAPI
-- **前端**：Next.js 14 + TypeScript + Tailwind + shadcn/ui
-- **Agent 编排**：LangGraph 状态机
-- **可观测**：LangSmith / Langfuse
-- **溯源**：句级引用，精确到页码和坐标框
+| 层 | 选型 |
+|---|---|
+| 后端 | Python 3.12 · FastAPI · Celery |
+| 前端 | Next.js 14 · TypeScript · Tailwind · shadcn/ui |
+| 检索 | BGE-M3（dense+sparse）· bge-reranker-v2-m3 · RRF 融合 |
+| Agent | 自研协调器（Plan→Research→Reflect→Write→Verify）|
+| 解析 | MinerU（版面 / 公式 / 表格 / 坐标）|
+| LLM 网关 | LiteLLM（Claude via airouter、DeepSeek 官方…）|
+| 存储 | Qdrant（向量）· PostgreSQL · Neo4j（引用图）· MinIO · Redis |
+| 可观测 | Langfuse（每次 LLM 调用的 trace / token / 延迟）|
 
-## 文档
+架构采用**六边形（Ports & Adapters）**：所有外部系统都抽象成接口，每个接口都有
+真实实现和内存假实现——因此核心逻辑可在不依赖任何外部服务的情况下端到端测试，
+更换后端只需替换一个 adapter。
 
-## 项目结构（monorepo）
+---
+
+## 快速开始（零依赖体验）
+
+用内存假实现跑起来，不需要 Docker / GPU / 任何 API key，验证流程与界面：
+
+```bash
+# 后端（需要 uv：https://docs.astral.sh/uv/）
+uv sync --extra dev
+uv run pytest -q                              # 跑测试
+uv run uvicorn apps.api.main:app --reload     # API → http://localhost:8000
+
+# 前端（另开终端，需要 Node 18+）
+cd apps/web && npm install && npm run dev     # 界面 → http://localhost:3000
+```
+
+此时问答链路（检索 → 生成 → 引用校验 → 前端角标）走的是假实现，答案是占位内容，
+但整条流程是真实的。接上真实服务后即为可用系统。
+
+---
+
+## 真实部署（云 API，无需 GPU）
+
+本机只跑数据库 + API + 前端，AI 能力全部走云：
+
+```bash
+# 1. 基础设施
+docker compose -f deploy/docker-compose.yml up -d   # Postgres/Qdrant/Neo4j/MinIO/Redis
+
+# 2. 配置
+cp .env.example .env                                # 按下表填 key
+
+# 3. 启动
+export SL_USE_REAL_ADAPTERS=1 SL_USE_DB=1 SL_CACHE_ENABLED=1
+uv run uvicorn apps.api.main:app --reload
+uv run celery -A apps.worker.celery_app worker -l info   # 异步解析（另开终端）
+cd apps/web && npm run dev
+```
+
+### 关键配置（`.env`，以 `SL_` 前缀覆盖）
+
+| 用途 | 变量 | 说明 |
+|---|---|---|
+| LLM 网关 | `SL_LLM_API_BASE` `SL_LLM_API_KEY` | OpenAI 兼容网关（如 airouter）|
+| 模型选择 | `SL_STRONG_MODEL` `SL_SMALL_MODEL` | 默认 `claude-opus-5-5` / `claude-haiku-5-5` |
+| DeepSeek | `SL_DEEPSEEK_API_KEY` | 低价模型，配了就出现在模型选择器 |
+| 向量化/重排 | `SL_SILICONFLOW_API_KEY` | 硅基流动 bge-m3 / bge-reranker |
+| PDF 解析 | `SL_MINERU_API_TOKEN` | MinerU 云 API |
+| 引用校验 | `SL_NLI_MODE` | `llm`（LLM 判官，默认）或 `deberta`（本地模型）|
+| 存储 | `SL_USE_DB` `SL_DATABASE_URL` | `true` 用 Postgres 持久化 |
+| 缓存 | `SL_CACHE_ENABLED` `SL_REDIS_URL` | `true` 开启 Redis 缓存 embedding |
+| 可观测 | `SL_LANGFUSE_PUBLIC_KEY` `SL_LANGFUSE_SECRET_KEY` `SL_LANGFUSE_HOST` | 配了即自动上报 |
+| 安全 | `SL_JWT_SECRET` `SL_BILLING_WEBHOOK_SECRET` | **上线前必须改成随机值** |
+
+> 完整的分步接入（含 MinerU、模型下载、排错）见 [`docs/LOCAL_SETUP.md`](docs/LOCAL_SETUP.md)。
+
+---
+
+## 使用指南
+
+所有接口需先登录拿 JWT，再以 `Authorization: Bearer <token>` 调用。
+
+### 1. 注册 / 登录
+
+```bash
+curl -X POST localhost:8000/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"alice","password":"your-password"}'
+# → { "access_token": "<JWT>", "user_id": "..." }
+```
+
+### 2. 导入文献
+
+```bash
+TOKEN=<上一步的 access_token>
+curl -X POST localhost:8000/ingest/upload \
+  -H "Authorization: Bearer $TOKEN" \
+  -F 'files=@paper.pdf'
+# 解析 → 多粒度切分 → 向量化入库，返回 chunk 数
+```
+
+### 3. 快速问答（流式，带引用）
+
+```bash
+curl -N -X POST localhost:8000/query \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"question":"What is Position Interpolation?","model":"deepseek"}'
+```
+SSE 先流式返回 token，最后一条 `done` 事件带引用校验结果（每句的来源 `eid`、可信度）。
+`model` 可选，不填用默认强模型；选了套餐不含的模型会返回 403。
+
+### 4. 深度研究（多跳综述）
+
+```bash
+curl -N -X POST localhost:8000/research \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"question":"对比 RoPE 外推类方法在长文本上的表现"}'
+```
+SSE 推送研究过程（plan / research / reflect / write / verify）和最终综述。
+
+### 5. 套餐与用量
+
+```bash
+curl localhost:8000/billing/overview -H "Authorization: Bearer $TOKEN"   # 当前套餐、配额剩余、累计成本
+curl localhost:8000/billing/plans                                         # 套餐清单
+curl -X POST localhost:8000/billing/checkout \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"plan_id":"pro"}'                                                   # 下单（返回订单号）
+```
+
+### 用界面
+
+打开 `http://localhost:3000`：左栏管理知识库与套餐、中栏对话与研究过程、
+右栏证据面板与引用图谱。顶部切换「快速问答 / 深度研究」，右上角选择模型。
+
+### 跑评测
+
+```bash
+uv run python -m eval.cli path/to/dev.jsonl   # QASPER 风格的 {qid,question,gold_answer,...}
+```
+
+---
+
+## 项目结构
 
 ```
 scholarlens/
 ├── apps/
-│   ├── api/       FastAPI：路由、鉴权、SSE（/ingest /query /research /papers /eval）
-│   ├── worker/    Celery：解析、切分、Embedding 的离线流水线
-│   └── web/       Next.js + shadcn/ui 前端（三栏界面、PDF bbox 高亮、引用图谱）
+│   ├── api/       FastAPI：auth / ingest / query / research / papers / models / billing / eval
+│   ├── worker/    Celery 离线解析流水线
+│   └── web/       Next.js 前端（三栏界面、模型选择、引用图谱）
 ├── core/
-│   ├── ports.py   所有外部系统的 Protocol 接口（六边形架构）
-│   ├── adapters/  真实实现(Qdrant/Neo4j/LiteLLM/BGE/DeBERTa/MinerU) + 内存 fakes
-│   ├── domain.py  跨模块领域模型（Chunk/Query/Evidence/Claim）
-│   ├── container.py 组装根：fakes 默认、真实 adapter 可替换
-│   ├── ingest/    解析器适配层 → PaperIR（Document IR）+ SHA-256 去重
-│   ├── index/     多粒度索引、Contextual Chunking、表格抽取、索引编排
-│   ├── retrieval/ 混合检索、RRF、重排、Query 路由
-│   ├── agent/     深度研究协调器(Plan→Research→Reflect→Write→Verify)、覆盖度
-│   ├── verify/    NLI 引用校验、重写、span 定位
-│   ├── qa.py      快速问答服务（流式 + 拒答）
-│   └── llm/       prompt 模板（LiteLLM adapter 在 adapters/）
-├── eval/          数据集加载器、指标、消融矩阵、CLI
-├── deploy/        docker-compose.yml（Postgres/Qdrant/Neo4j/MinIO/Redis）
-└── tests/         67 个单测，全绿
+│   ├── ports.py        外部系统的 Protocol 接口（六边形架构核心）
+│   ├── adapters/       真实实现（MinerU/SiliconFlow/LiteLLM/Qdrant/Neo4j…）+ 内存 fakes
+│   ├── domain.py       领域模型（Chunk / Query / Evidence / Claim）
+│   ├── ingest/         解析产物 → PaperIR、去重
+│   ├── index/          多粒度切分、Contextual Chunking、表格抽取、索引编排
+│   ├── retrieval/      混合检索、RRF、重排、Query 路由
+│   ├── agent/          深度研究协调器、覆盖度
+│   ├── verify/         引用校验、重写
+│   ├── llm/            模型目录、prompt、价格、用量
+│   ├── auth/ billing/  登录鉴权、套餐、支付、计量
+│   ├── db/ cache/      Postgres 存储、Redis 缓存
+│   └── obs/            Langfuse 可观测
+├── eval/          指标、消融矩阵、评测 runner
+├── deploy/        docker-compose
+└── tests/         118 个单测
 ```
 
-## 架构：六边形（Ports & Adapters）
+---
 
-所有外部系统（向量库 / 图库 / Embedder / Reranker / LLM / NLI / 解析器 / 表格库 /
-对象存储）都抽象为 `core/ports.py` 的 Protocol。每个 port 有两种实现：
-
-- **真实 adapter**（`core/adapters/`）：Qdrant、Neo4j、LiteLLM、BGE-M3、bge-reranker、
-  DeBERTa-NLI、MinerU、Postgres、MinIO；
-- **内存 fake**（`core/adapters/fakes.py`）：让整条问答 / 研究链路**不依赖 GPU/Docker/
-  模型**即可端到端运行与测试。
-
-换后端只改一个 adapter，业务逻辑零改动。默认 `build_container()` 用 fakes（开箱即跑），
-设 `SL_USE_REAL_ADAPTERS=1` 切换到 `build_real_container()`。
-
-## 本地开发
-
-**零依赖快速体验**（用 fakes，后端开箱即跑，无需 Docker / GPU / 模型）：
+## 测试
 
 ```bash
-uv sync --extra dev
-uv run pytest -q                                   # 67 个测试
-uv run uvicorn apps.api.main:app --reload          # :8000，/query /research 直接可用
-cd apps/web && npm install && npm run dev          # :3000
+uv run pytest -q          # 118 个测试，全部用内存实现，无需外部服务
 ```
 
-**接真实后端**：
+核心业务逻辑（检索、索引、引用校验、研究 Agent、计费、存储、缓存）均有单测覆盖；
+数据库 SQL 用 SQLite 实跑验证；真实云 API（MinerU / 硅基流动 / Claude / DeepSeek /
+Langfuse）均已在真实环境端到端验证。
 
-```bash
-docker compose -f deploy/docker-compose.yml up -d  # Postgres/Qdrant/Neo4j/MinIO/Redis
-cp .env.example .env                               # 填 LLM API key 等
-export SL_USE_REAL_ADAPTERS=1
-uv run uvicorn apps.api.main:app --reload
-uv run celery -A apps.worker.celery_app worker -l info
-```
+---
 
-> 核心业务逻辑已实现并测试（检索 / 索引 / 引用校验 / 研究 Agent / 评测，67 测试全绿）。
-> 真实 adapter（Qdrant/Neo4j/LiteLLM/BGE/DeBERTa/MinerU）照 port 实现、结构契约已测；
-> 其与模型、GPU、外部服务的联调需在本地环境完成——详见
-> [`docs/LOCAL_SETUP.md`](docs/LOCAL_SETUP.md)。
+## 实现状态
 
-## 文档
+**已实现并验证**：文档解析、多粒度索引、混合检索与重排、深度研究 Agent、引用校验、
+多模型选择、登录鉴权、套餐与配额、支付回调、token 成本计量、Postgres 存储、
+Redis 缓存、Langfuse 可观测、前端三栏界面与评测框架。
 
-完整的 PRD 与技术实现文档见 [`docs/ScholarLens_PRD_Tech.html`](docs/ScholarLens_PRD_Tech.html)，涵盖：
+**尚未完成**（后续增量）：
 
-- **Part I 产品需求**：项目概述、目标用户与场景、功能需求、交互与页面、非功能指标
-- **Part II 技术实现**：系统架构、文档解析流水线、多粒度索引、混合检索与重排、深度研究 Agent、引用校验与反幻觉、评测体系、技术栈与工程
-- **Part III 交付**：里程碑、风险与对策
+- `core/agent/graph.py` 的 LangGraph 绑定（研究协调器已可独立运行，仅缺 checkpoint /
+  可中断的 LangGraph 封装）
+- Qdrant / Neo4j / Postgres-RAG adapter 的真实服务联调（代码与接口契约已就绪）
+- 前端 PDF 阅读器的 bbox 高亮（当前为占位）、知识库按 collection 的真实分组
+- 检索 / 重排等非 LLM 阶段的 Langfuse span；Prometheus 指标
+- 真实支付网关对接（当前为签名校验骨架 + 模拟支付）
 
-面试准备手册见 [`docs/ScholarLens_Interview_Prep.html`](docs/ScholarLens_Interview_Prep.html)：项目解读与叙事线、亮点、技术挑战、选型调研、评测工作，以及高频问题的预判与标准回答。
-
-## 状态
-
-核心功能已实现并测试（六边形架构，fakes 下端到端可跑，67 测试全绿；前端 `next build` 通过）。
-真实 adapter 的外部服务联调待本地环境完成。
+---
 
 ## License
 
