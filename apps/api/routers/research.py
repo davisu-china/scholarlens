@@ -1,15 +1,15 @@
-"""POST /research — 深度研究模式，SSE 推送 Plan / Trace / Answer。
-
-human-in-the-loop：planner 产出计划后中断，用户编辑确认再继续。参见 PRD F3 + 第 10 章。
-"""
+"""POST /research — 深度研究模式，SSE 推送 Plan / Trace / Answer。参见 PRD F3 + 第 10 章。"""
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+import json
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
+
+from apps.api.deps import get_container
+from core.container import Container
 
 router = APIRouter()
 
@@ -17,18 +17,26 @@ router = APIRouter()
 class ResearchRequest(BaseModel):
     question: str
     collection: str | None = None
-    thread_id: str | None = None   # 复用已中断的会话（编辑计划后继续）
-    approved_plan: list[dict] | None = None
-
-
-async def _stream_research(req: ResearchRequest) -> AsyncIterator[dict]:
-    # TODO: 调用 core.agent.graph，把每个节点事件映射成 SSE：
-    #   plan / hybrid_search / table_query / citation_expand / reflect / verify / answer
-    yield {"event": "plan", "data": "[]"}
-    yield {"event": "done", "data": "{}"}
-    raise NotImplementedError
+    approved_plan: list[str] | None = None
 
 
 @router.post("")
-async def research(req: ResearchRequest) -> EventSourceResponse:
-    return EventSourceResponse(_stream_research(req))
+async def research(req: ResearchRequest, c: Container = Depends(get_container)) -> EventSourceResponse:
+    async def gen():
+        result = await c.coordinator.run(req.question, approved_plan=req.approved_plan)
+        for step in result.trace:
+            yield {"event": step.kind, "data": json.dumps({"detail": step.detail, **step.data}, ensure_ascii=False)}
+        yield {
+            "event": "answer",
+            "data": json.dumps(
+                {
+                    "answer": result.answer.answer,
+                    "trust": result.answer.trust,
+                    "claims": [cl.model_dump() for cl in result.answer.claims],
+                    "coverage": result.coverage,
+                },
+                ensure_ascii=False,
+            ),
+        }
+
+    return EventSourceResponse(gen())

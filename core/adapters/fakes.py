@@ -181,7 +181,8 @@ class FakeLLM:
     async def structured[T: BaseModel](self, prompt: str, schema: type[T], *, model: str | None = None) -> T:
         self.calls.append(prompt)
         if not self._structured:
-            raise AssertionError("FakeLLM.structured 被调用但没有预置返回值")
+            # 没有预置时返回该 schema 的空实例（字段都有默认值的 schema 可构造）。
+            return schema()
         obj = self._structured.pop(0)
         assert isinstance(obj, schema), f"预置返回 {type(obj)} 与期望 {schema} 不符"
         return obj
