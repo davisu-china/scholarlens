@@ -173,7 +173,7 @@ footer{margin-top:100px;padding-top:30px;border-top:1px solid var(--line);color:
   <h1>ScholarLens<br><em>可溯源的学术深度研究引擎</em></h1>
   <p class="sub">面向科研人员的多文档 RAG 系统。它能解析论文 PDF 中的公式、表格和图注，沿引用网络做多跳检索，生成有据可查的研究综述。综述里的每一句结论都能追溯到原文的具体位置。</p>
   <div class="meta">
-    <div><b>Python 3.12 全栈</b>后端 FastAPI · 前端 Reflex</div>
+    <div><b>Python 后端 + React 前端</b>FastAPI · Next.js + shadcn/ui</div>
     <div><b>Agentic RAG</b>LangGraph 状态机编排</div>
     <div><b>句级溯源</b>引用精确到页码和坐标框</div>
     <div><b>可量化</b>在公开基准上评测</div>
@@ -369,7 +369,7 @@ footer{margin-top:100px;padding-top:30px;border-top:1px solid var(--line);color:
 
 <section id="arch">
   <h2><span class="no">06</span>系统架构</h2>
-  <p class="lead">系统分为离线和在线两部分。离线的 Ingestion 流水线由 Celery worker 异步处理；在线的 Query 流程由 FastAPI 提供服务，LangGraph 负责编排 Agent。前端用 Reflex 编写，全部是 Python 代码。</p>
+  <p class="lead">系统分为离线和在线两部分。离线的 Ingestion 流水线由 Celery worker 异步处理；在线的 Query 流程由 FastAPI 提供服务，LangGraph 负责编排 Agent。前端是独立的 Next.js 应用（React + TypeScript + shadcn/ui），通过 REST 与 SSE 和后端通信。</p>
   <div class="diagram">
   <svg viewBox="0 0 960 520" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
     <defs>
@@ -379,7 +379,7 @@ footer{margin-top:100px;padding-top:30px;border-top:1px solid var(--line);color:
     <!-- layer: frontend -->
     <rect x="10" y="10" width="940" height="74" rx="14" fill="#11151d" stroke="#2a3040"/>
     <text x="28" y="34" fill="#6b7385" font-size="11" letter-spacing="2">PRESENTATION</text>
-    <rect x="28" y="44" width="250" height="30" rx="8" fill="#171c27" stroke="#8b6cff"/><text x="153" y="64" fill="#e7e9ef" font-size="12.5" text-anchor="middle">Reflex Web App（Python → React）</text>
+    <rect x="28" y="44" width="250" height="30" rx="8" fill="#171c27" stroke="#8b6cff"/><text x="153" y="64" fill="#e7e9ef" font-size="12.5" text-anchor="middle">Next.js Web App（React + shadcn/ui）</text>
     <rect x="292" y="44" width="150" height="30" rx="8" fill="#171c27" stroke="#2a3040"/><text x="367" y="64" fill="#cfd3dc" font-size="12" text-anchor="middle">PDF.js + bbox 高亮</text>
     <rect x="456" y="44" width="150" height="30" rx="8" fill="#171c27" stroke="#2a3040"/><text x="531" y="64" fill="#cfd3dc" font-size="12" text-anchor="middle">ECharts 引用图谱</text>
     <rect x="620" y="44" width="150" height="30" rx="8" fill="#171c27" stroke="#2a3040"/><text x="695" y="64" fill="#cfd3dc" font-size="12" text-anchor="middle">SSE 流式渲染</text>
@@ -438,7 +438,7 @@ footer{margin-top:100px;padding-top:30px;border-top:1px solid var(--line);color:
     <tbody>
       <tr><td>向量库</td><td><strong>Qdrant</strong></td><td>Milvus / pgvector</td><td>原生支持 dense + sparse 混合查询和 payload 过滤，单机部署轻量；pgvector 在百万级 chunk 加过滤条件时性能下降</td></tr>
       <tr><td>Agent 编排</td><td><strong>LangGraph</strong></td><td>手写循环 / CrewAI</td><td>显式状态机，支持中断恢复（human-in-the-loop 编辑研究计划）和 checkpoint 持久化</td></tr>
-      <tr><td>前端</td><td><strong>Reflex</strong></td><td>Streamlit / Gradio</td><td>Streamlit 每次交互都会重跑整个脚本，难以做三栏联动和流式状态；Reflex 编译成 React，支持组件化和 WebSocket 状态同步</td></tr>
+      <tr><td>前端</td><td><strong>Next.js + shadcn/ui</strong></td><td>Reflex / Streamlit</td><td>三栏联动、流式状态和 bbox 高亮对交互要求高：Streamlit 每次交互重跑脚本做不了；Reflex 虽是纯 Python 但生态小众，PDF.js / ECharts 这类组件要自己隔层封装。直接用 React 技术栈，shadcn + Tailwind 能精确还原设计稿，PDF.js / ECharts 是一等公民</td></tr>
       <tr><td>PDF 解析</td><td><strong>MinerU</strong> + GROBID</td><td>PyMuPDF / Unstructured</td><td>MinerU 对双栏论文、公式（输出 LaTeX）和表格还原效果最好；GROBID 专门负责参考文献结构化</td></tr>
       <tr><td>Embedding</td><td><strong>BGE-M3</strong></td><td>OpenAI text-embedding-3</td><td>一次前向同时得到 dense 和 sparse 向量，中英文都可用，能私有部署</td></tr>
     </tbody>
@@ -647,7 +647,7 @@ app = g.compile(checkpointer=PostgresSaver(pool), interrupt_after=[<span class="
 <section id="stack">
   <h2><span class="no">13</span>技术栈与工程实现</h2>
   <div class="g3">
-    <div class="card"><h4>前端</h4><ul class="dot"><li>Reflex 0.6+（纯 Python）</li><li>自定义组件封装 PDF.js、ECharts</li><li>WebSocket 状态同步 + SSE 流式输出</li></ul></div>
+    <div class="card"><h4>前端</h4><ul class="dot"><li>Next.js 14+ · TypeScript · Tailwind</li><li>shadcn/ui 组件 + 封装 PDF.js、ECharts</li><li>TanStack Query · SSE 流式输出</li></ul></div>
     <div class="card"><h4>后端</h4><ul class="dot"><li>FastAPI + Pydantic v2，全异步</li><li>SQLAlchemy 2.0 + Alembic</li><li>Celery + Redis 异步任务</li></ul></div>
     <div class="card"><h4>AI / 检索</h4><ul class="dot"><li>LangGraph · LiteLLM</li><li>BGE-M3 · bge-reranker-v2-m3</li><li>MinerU · GROBID · DeBERTa-NLI</li></ul></div>
     <div class="card"><h4>存储</h4><ul class="dot"><li>Qdrant · PostgreSQL 16</li><li>Neo4j 5 · MinIO · Redis</li></ul></div>
@@ -659,7 +659,7 @@ app = g.compile(checkpointer=PostgresSaver(pool), interrupt_after=[<span class="
 ├── apps/
 │   ├── api/            <span class="c"># FastAPI 路由、鉴权、SSE</span>
 │   ├── worker/         <span class="c"># Celery 任务：解析、切分、Embedding</span>
-│   └── web/            <span class="c"># Reflex 前端（pages / components / state）</span>
+│   └── web/            <span class="c"># Next.js 前端（app / components / lib）</span>
 ├── core/
 │   ├── ingest/         <span class="c"># 解析器适配层 → PaperIR</span>
 │   ├── index/          <span class="c"># 多粒度索引、Contextual Chunking、表格抽取</span>
@@ -690,7 +690,7 @@ app = g.compile(checkpointer=PostgresSaver(pool), interrupt_after=[<span class="
   <h2><span class="no">14</span>里程碑</h2>
   <p class="lead">按一个人业余时间开发估算，共 8 周。每个阶段结束时都有可演示的成果和评测数字。</p>
   <div class="tl">
-    <div class="m"><span class="w">W1–W2 · M1</span><h4>解析与基础问答</h4><p>MinerU 解析接入 PaperIR，按章节切分，Dense 检索，最简 Reflex 问答页面。在 QASPER 上跑出 B0、+1 两行数据。</p></div>
+    <div class="m"><span class="w">W1–W2 · M1</span><h4>解析与基础问答</h4><p>MinerU 解析接入 PaperIR，按章节切分，Dense 检索，最简问答页面。在 QASPER 上跑出 B0、+1 两行数据。</p></div>
     <div class="m"><span class="w">W3–W4 · M2</span><h4>检索优化</h4><p>Contextual Chunking、BGE-M3 混合检索、RRF、Reranker 及其微调，完成消融表 +2 到 +4 行。</p></div>
     <div class="m"><span class="w">W5 · M3</span><h4>可信引用</h4><p>受约束生成、NLI 校验、bbox 定位，PDF 阅读器支持双向跳转。</p></div>
     <div class="m"><span class="w">W6–W7 · M4</span><h4>深度研究与表格问答</h4><p>LangGraph 研究图、human-in-the-loop、表格四元组抽取、引用图谱。</p></div>
@@ -720,9 +720,9 @@ app = g.compile(checkpointer=PostgresSaver(pool), interrupt_after=[<span class="
     <div class="card"><h4>③ 深度研究 Agent</h4><p><strong>追问：</strong>Agent 怎么知道何时停止？成本如何控制？<br><strong>答点：</strong>按信息点计算覆盖度、最多 3 轮、大小模型分工、子问题并行、checkpoint 支持中断后恢复。</p></div>
     <div class="card"><h4>④ 引用校验</h4><p><strong>追问：</strong>怎么保证引用不是编造的？NLI 阈值怎么定？<br><strong>答点：</strong>生成时约束 eid 合法、生成后做 NLI 蕴含判定、数值规则校验、在人工标注集上标定阈值、引用精确到 bbox。</p></div>
     <div class="card"><h4>⑤ 评测驱动迭代</h4><p><strong>追问：</strong>怎么证明你的优化有效？<br><strong>答点：</strong>公开基准 + 自建集、消融表格、CI 评测门禁、bad case 四类归因、线上反馈闭环。</p></div>
-    <div class="card"><h4>⑥ 工程取舍</h4><p><strong>追问：</strong>为什么选 Qdrant / LangGraph / Reflex？<br><strong>答点：</strong>见 06 章的决策表。能讲清楚各个备选方案的局限，比只说用了什么更重要。</p></div>
+    <div class="card"><h4>⑥ 工程取舍</h4><p><strong>追问：</strong>为什么选 Qdrant / LangGraph / Next.js？<br><strong>答点：</strong>见 06 章的决策表。能讲清楚各个备选方案的局限，比只说用了什么更重要。</p></div>
   </div>
-  <div class="callout"><b>简历一句话版本：</b>设计并实现面向学术文献的 Agentic RAG 系统 ScholarLens。通过版面感知解析、Contextual Chunking、混合检索与微调重排，在 QASPER 上把证据召回提升到 X%；基于 LangGraph 构建可中断的深度研究 Agent；引入 NLI 句级引用校验，使引用准确率达到 Y%。前后端全部使用 Python（FastAPI + Reflex）实现。</div>
+  <div class="callout"><b>简历一句话版本：</b>设计并实现面向学术文献的 Agentic RAG 系统 ScholarLens。通过版面感知解析、Contextual Chunking、混合检索与微调重排，在 QASPER 上把证据召回提升到 X%；基于 LangGraph 构建可中断的深度研究 Agent；引入 NLI 句级引用校验，使引用准确率达到 Y%。后端 Python（FastAPI + LangGraph），前端 Next.js + shadcn/ui。</div>
 </section>
 
 <footer>
