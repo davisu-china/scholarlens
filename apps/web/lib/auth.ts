@@ -25,3 +25,15 @@ export async function getToken(): Promise<string> {
 export async function authHeaders(): Promise<Record<string, string>> {
   return { Authorization: `Bearer ${await getToken()}` };
 }
+
+/** 带鉴权的 fetch：token 失效（401）时丢弃缓存并重新登录一次。 */
+export async function authFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+  const send = async () =>
+    fetch(input, { ...init, headers: { ...init.headers, ...(await authHeaders()) } });
+  let r = await send();
+  if (r.status === 401) {
+    localStorage.removeItem(KEY);
+    r = await send();
+  }
+  return r;
+}
