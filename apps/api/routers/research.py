@@ -12,6 +12,7 @@ from apps.api.deps import get_billing, get_container, get_user
 from core.billing.plans import ACTION_RESEARCH
 from core.billing.service import BillingService, ModelNotAllowed, QuotaExceeded
 from core.container import Container
+from core.llm import usage
 
 router = APIRouter()
 
@@ -39,6 +40,7 @@ async def research(
         raise HTTPException(429, str(e)) from e
 
     async def gen():
+        acc = usage.start()
         result = await c.coordinator.run(req.question, approved_plan=req.approved_plan, model=req.model)
         for step in result.trace:
             yield {"event": step.kind, "data": json.dumps({"detail": step.detail, **step.data}, ensure_ascii=False)}
@@ -54,6 +56,6 @@ async def research(
                 ensure_ascii=False,
             ),
         }
-        await billing.record(user, ACTION_RESEARCH, model_id=req.model)
+        await billing.record(user, ACTION_RESEARCH, model_id=req.model, cost_cny=acc.total_cost_cny)
 
     return EventSourceResponse(gen())

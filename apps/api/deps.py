@@ -29,13 +29,20 @@ def get_container() -> Container:
 
 
 # --- 计费（雏形）---
-from fastapi import Header  # noqa: E402
+from fastapi import Header, HTTPException  # noqa: E402
 
+from core.auth.jwt import AuthError, decode_token  # noqa: E402
+from core.auth.users import InMemoryUserStore  # noqa: E402
 from core.billing.service import BillingService  # noqa: E402
 from core.billing.store import InMemorySubscriptionStore, InMemoryUsageStore  # noqa: E402
+from core.billing.orders import InMemoryOrderStore  # noqa: E402
+from core.billing.payment import PaymentService  # noqa: E402
+from core.config import settings  # noqa: E402
 
 _SUBS = InMemorySubscriptionStore()
 _USAGE = InMemoryUsageStore()
+_USERS = InMemoryUserStore()
+_ORDERS = InMemoryOrderStore()
 
 
 @lru_cache
@@ -44,6 +51,20 @@ def get_billing() -> BillingService:
     return BillingService(_SUBS, _USAGE)
 
 
-async def get_user(x_user_id: str = Header(default="demo")) -> str:
-    """从请求头解析用户。雏形用 X-User-Id；生产换 JWT 的 sub。"""
-    return x_user_id
+def get_users() -> InMemoryUserStore:
+    return _USERS
+
+
+@lru_cache
+def get_payment() -> PaymentService:
+    return PaymentService(_ORDERS, _SUBS, webhook_secret=settings.billing_webhook_secret)
+
+
+async def get_user(authorization: str = Header(default="")) -> str:
+    """从 Authorization: Bearer <jwt> 解析用户 id（JWT 的 sub）。"""
+    if not authorization.lower().startswith("bearer "):
+        raise HTTPException(401, "缺少 Bearer token")
+    try:
+        return decode_token(authorization.split(" ", 1)[1].strip())
+    except AuthError as e:
+        raise HTTPException(401, str(e)) from e

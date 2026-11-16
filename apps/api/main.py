@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from apps.api.routers import eval as eval_router
-from apps.api.routers import billing, ingest, models, papers, query, research
+from apps.api.routers import auth, billing, ingest, models, papers, query, research
 
 app = FastAPI(title="ScholarLens API", version="0.1.0")
 
@@ -18,6 +18,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(ingest.router, prefix="/ingest", tags=["ingest"])
 app.include_router(query.router, prefix="/query", tags=["query"])
 app.include_router(research.router, prefix="/research", tags=["research"])

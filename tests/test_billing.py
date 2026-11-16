@@ -79,29 +79,35 @@ def client():
     return TestClient(app)
 
 
-def test_api_overview_default_free(client):
-    r = client.get("/billing/overview", headers={"X-User-Id": "u1"})
+def test_api_overview_default_free(client, auth):
+    r = client.get("/billing/overview", headers=auth(client, "u1"))
     assert r.status_code == 200
     assert r.json()["plan"]["id"] == "free"
 
 
-def test_api_locked_model_returns_403(client):
+def test_api_locked_model_returns_403(client, auth):
     # free 用户选 opus → 403
-    r = client.post("/query", json={"question": "x", "model": "opus"}, headers={"X-User-Id": "u2"})
+    r = client.post("/query", json={"question": "x", "model": "opus"}, headers=auth(client, "u2"))
     assert r.status_code == 403
     assert "不包含模型" in r.json()["detail"]
 
 
-def test_api_upgrade_then_opus_allowed(client):
-    h = {"X-User-Id": "u3"}
-    client.post("/billing/plan", json={"plan_id": "pro"}, headers=h)
-    # 升级后 opus 不再被计费拦截（可能因无证据返回 200 的拒答流）
+def test_api_upgrade_via_payment_then_opus_allowed(client, auth):
+    h = auth(client, "u3")
+    # 免费版先被拦
+    assert client.post("/query", json={"question": "x", "model": "opus"}, headers=h).status_code == 403
+    # 下单 → 模拟支付成功（走 webhook 验签履约）
+    order = client.post("/billing/checkout", json={"plan_id": "pro"}, headers=h).json()
+    paid = client.post(f"/billing/simulate-payment/{order['order_id']}")
+    assert paid.json()["status"] == "paid"
+    # 升级后放行（无证据 → 200 的拒答流）
     r = client.post("/query", json={"question": "x", "model": "opus"}, headers=h)
     assert r.status_code == 200
+    assert client.get("/billing/overview", headers=h).json()["plan"]["id"] == "pro"
 
 
-def test_api_models_marks_locked_for_free(client):
-    r = client.get("/models", headers={"X-User-Id": "u4"})
+def test_api_models_marks_locked_for_free(client, auth):
+    r = client.get("/models", headers=auth(client, "u4"))
     body = r.json()
     locked = {m["id"]: m["locked"] for m in body["models"]}
     # free 套餐：opus 锁、deepseek/haiku 不锁（若这些模型在目录里）

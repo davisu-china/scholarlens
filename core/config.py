@@ -45,6 +45,7 @@ class Settings(BaseSettings):
 
     # --- auth ---
     jwt_secret: str = "change-me-in-production"
+    billing_webhook_secret: str = "change-me-webhook-secret"
     jwt_algorithm: str = "HS256"
 
     # --- observability ---

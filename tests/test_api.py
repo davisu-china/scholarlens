@@ -31,15 +31,15 @@ def test_health(client):
     assert client.get("/health").json() == {"status": "ok"}
 
 
-def test_query_streams_sse(client):
-    r = client.post("/query", json={"question": "yarn perplexity at 128k"})
+def test_query_streams_sse(client, auth):
+    r = client.post("/query", json={"question": "yarn perplexity at 128k"}, headers=auth(client, "qa"))
     assert r.status_code == 200
     assert "event: token" in r.text
     assert "event: done" in r.text
 
 
-def test_research_streams_trace_and_answer(client):
-    r = client.post("/research", json={"question": "how does yarn extend context"})
+def test_research_streams_trace_and_answer(client, auth):
+    r = client.post("/research", json={"question": "how does yarn extend context"}, headers=auth(client, "qa"))
     assert r.status_code == 200
     assert "event: plan" in r.text
     assert "event: answer" in r.text

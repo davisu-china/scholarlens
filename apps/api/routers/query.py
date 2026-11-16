@@ -12,6 +12,7 @@ from apps.api.deps import get_billing, get_container, get_user
 from core.billing.plans import ACTION_QUERY
 from core.billing.service import BillingService, ModelNotAllowed, QuotaExceeded
 from core.container import Container
+from core.llm import usage
 
 router = APIRouter()
 
@@ -40,9 +41,10 @@ async def query(
     filters = dict({} if req.collection is None else {"collection": req.collection})
 
     async def gen():
+        acc = usage.start()
         async for ev in c.qa.stream(req.question, filters=filters, model=req.model):
             data = ev["data"] if isinstance(ev["data"], str) else json.dumps(ev["data"], ensure_ascii=False)
             yield {"event": ev["event"], "data": data}
-        await billing.record(user, ACTION_QUERY, model_id=req.model)
+        await billing.record(user, ACTION_QUERY, model_id=req.model, cost_cny=acc.total_cost_cny)
 
     return EventSourceResponse(gen())

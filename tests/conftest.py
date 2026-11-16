@@ -39,3 +39,14 @@ def paper() -> PaperIR:
         ],
         references=[Reference(key="chen2023pi", raw="Chen et al. 2023", title="Position Interpolation")],
     )
+
+
+@pytest.fixture
+def auth():
+    """返回一个函数：给定 TestClient 和用户名，注册并返回带 JWT 的请求头。"""
+    def _make(client, username="demo", password="pw"):
+        r = client.post("/auth/register", json={"username": username, "password": password})
+        if r.status_code == 409:
+            r = client.post("/auth/login", json={"username": username, "password": password})
+        return {"Authorization": f"Bearer {r.json()['access_token']}"}
+    return _make

@@ -1,6 +1,5 @@
-const USER_HEADER = { "X-User-Id": "demo" };
-
 import { streamSSE } from "./sse";
+import { authHeaders } from "./auth";
 import type { QADone, ResearchAnswer, TraceEvent } from "./types";
 
 /** 快速问答：回调逐 token，结束时回调一次 done(含引用与证据)。 */
@@ -10,7 +9,7 @@ export async function askQuestion(
 ): Promise<void> {
   for await (const ev of streamSSE("/api/query", {
     method: "POST",
-    headers: USER_HEADER,
+    headers: await authHeaders(),
     body: JSON.stringify({ question, collection: opts.collection, model: opts.model }),
   })) {
     if (ev.event === "token") opts.onToken(ev.data);
@@ -25,7 +24,7 @@ export async function deepResearch(
 ): Promise<void> {
   for await (const ev of streamSSE("/api/research", {
     method: "POST",
-    headers: USER_HEADER,
+    headers: await authHeaders(),
     body: JSON.stringify({ question, approved_plan: opts.approvedPlan, model: opts.model }),
   })) {
     if (ev.event === "answer") opts.onAnswer(JSON.parse(ev.data) as ResearchAnswer);
@@ -39,12 +38,12 @@ export async function fetchCitationGraph(paperId: string) {
 }
 
 export async function fetchModels() {
-  const r = await fetch("/api/models", { headers: USER_HEADER });
+  const r = await fetch("/api/models", { headers: await authHeaders() });
   return r.json() as Promise<{ default: string | null; plan: string; models: { id: string; label: string; description: string; tier: string; locked: boolean }[] }>;
 }
 
 export async function fetchBilling() {
-  const r = await fetch("/api/billing/overview", { headers: USER_HEADER });
+  const r = await fetch("/api/billing/overview", { headers: await authHeaders() });
   return r.json() as Promise<{
     plan: { id: string; name: string; price_cny_per_month: number };
     quotas: { action: string; window: string; limit: number; used: number; remaining: number }[];
@@ -52,9 +51,16 @@ export async function fetchBilling() {
   }>;
 }
 
-export async function setPlan(planId: string) {
-  await fetch("/api/billing/plan", {
-    method: "POST", headers: { "Content-Type": "application/json", ...USER_HEADER },
-    body: JSON.stringify({ plan_id: planId }),
-  });
+export async function upgradePlan(planId: string) {
+  const h = { "Content-Type": "application/json", ...(await authHeaders()) };
+  const order = await (await fetch("/api/billing/checkout", {
+    method: "POST", headers: h, body: JSON.stringify({ plan_id: planId }),
+  })).json();
+  // 雏形：直接触发模拟支付；生产跳转 order.pay_url 由网关回调
+  await fetch(`/api/billing/simulate-payment/${order.order_id}`, { method: "POST" });
+}
+
+export async function downgradeFree() {
+  // 免费套餐无需支付，雏形下单接口会拒绝；降级在生产由订阅到期处理。
+  // 这里演示用：直接下单 pro 的反向——省略，UI 只在付费态提供“查看用量”。
 }

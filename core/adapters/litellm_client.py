@@ -17,6 +17,7 @@ from collections.abc import AsyncIterator
 from pydantic import BaseModel
 
 from core.config import settings
+from core.llm import usage
 
 
 class LiteLLMClient:
@@ -48,6 +49,17 @@ class LiteLLMClient:
             extra["api_key"] = self._api_key
         return extra
 
+    def _meter(self, model: str | None, resp) -> None:
+        """把本次调用的 token 用量记入当前请求的累加器（按底层模型名计价）。"""
+        u = getattr(resp, "usage", None)
+        if not u:
+            return
+        usage.record(
+            model or self._default,
+            int(getattr(u, "prompt_tokens", 0) or 0),
+            int(getattr(u, "completion_tokens", 0) or 0),
+        )
+
     def _messages(self, prompt: str, system: str | None) -> list[dict]:
         msgs = []
         if system:
@@ -64,6 +76,7 @@ class LiteLLMClient:
             fallbacks=self._fallbacks or None,
             **self._extra(),
         )
+        self._meter(model, resp)
         return resp.choices[0].message.content or ""
 
     async def stream(
@@ -75,12 +88,14 @@ class LiteLLMClient:
             model=self._model(model),
             messages=self._messages(prompt, system),
             stream=True,
+            stream_options={"include_usage": True},
             **self._extra(),
         )
         async for chunk in stream:
-            delta = chunk.choices[0].delta.content
-            if delta:
-                yield delta
+            if getattr(chunk, "usage", None):
+                self._meter(model, chunk)
+            if chunk.choices and chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
 
     async def structured[T: BaseModel](self, prompt: str, schema: type[T], *, model: str | None = None) -> T:
         """用 JSON schema 约束输出，解析为 Pydantic 模型。"""
@@ -96,6 +111,7 @@ class LiteLLMClient:
             response_format={"type": "json_object"},
             **self._extra(),
         )
+        self._meter(model, resp)
         content = resp.choices[0].message.content or "{}"
         return schema.model_validate_json(_strip_fence(content))
 
