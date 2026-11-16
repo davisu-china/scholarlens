@@ -19,11 +19,20 @@ class Settings(BaseSettings):
     minio_secret_key: str = "minioadmin"
     redis_url: str = "redis://localhost:6379/0"
 
-    # --- models (via LiteLLM) ---
-    strong_model: str = "claude-sonnet-4-5"       # Planner / Writer
-    small_model: str = "qwen-plus"                # Reflector / query rewrite
+    # --- LLM（经 LiteLLM；airouter 等 OpenAI 兼容网关填 base+key，官方 SDK 留空走环境变量）---
+    strong_model: str = "claude-opus-5-5"          # Planner / Writer / 引用校验判官
+    small_model: str = "claude-haiku-5-5"          # Reflector / query 改写 / 上下文前缀
+    llm_api_base: str | None = None                # 如 https://airouter.cloud/v1
+    llm_api_key: str | None = None
+
+    # --- 向量化 / 重排（硅基流动 API，无需 GPU；key 写在 .env）---
     embedding_model: str = "BAAI/bge-m3"
     reranker_model: str = "BAAI/bge-reranker-v2-m3"
+    siliconflow_api_base: str = "https://api.siliconflow.cn/v1"
+    siliconflow_api_key: str | None = None
+
+    # --- 引用校验：llm（用 LLM 判官，无需 GPU）| deberta（本地模型）---
+    nli_mode: str = "llm"
     nli_model: str = "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli"
 
     # --- PDF 解析（MinerU 云 API；token 写在 .env，不进仓库）---

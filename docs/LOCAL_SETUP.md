@@ -51,7 +51,32 @@ curl -N -X POST http://localhost:8000/query \
 
 ---
 
-## 路线 B：真实接入
+## 路线 B-无GPU：全部用云 API（推荐，无需显卡）
+
+本机不需要 GPU，只跑数据库 + API + 前端，AI 能力全部走云：
+
+| 能力 | 云服务 | .env 配置 |
+|---|---|---|
+| LLM（生成/规划/判官） | airouter 等 OpenAI 兼容网关 | `SL_LLM_API_BASE` `SL_LLM_API_KEY` `SL_STRONG_MODEL=claude-opus-5-5` `SL_SMALL_MODEL=claude-haiku-5-5` |
+| 向量化 + 重排 | 硅基流动 | `SL_SILICONFLOW_API_KEY`（bge-m3 / bge-reranker-v2-m3） |
+| 引用校验 | LLM 判官 | `SL_NLI_MODE=llm`（默认，用小模型逐句判断，无需 DeBERTa） |
+| PDF 解析 | MinerU 云 | `SL_MINERU_API_TOKEN` |
+
+稀疏检索那一路（专有名词精确召回）用本地词法编码器补上，不需要模型。
+配好 `.env` 后：
+
+```bash
+docker compose -f deploy/docker-compose.yml up -d   # 只需 Qdrant/Postgres/Neo4j/MinIO/Redis
+export SL_USE_REAL_ADAPTERS=1
+uv run uvicorn apps.api.main:app --reload
+```
+
+> 已用真实服务端到端验证：MinerU 解析一篇 18 页论文约 35s，硅基流动向量化入库，
+> opus-5-5 生成答案、haiku 逐句校验引用。全程无需本地 GPU。
+
+---
+
+## 路线 B-GPU：本地跑模型
 
 ### B1. 启动基础设施
 

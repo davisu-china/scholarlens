@@ -82,8 +82,9 @@ class CitationVerifier:
                 rewritten = await self._llm.complete(
                     _REWRITE_PROMPT.format(claim=claim.text, evidence=evidence[best].text)
                 )
-                if rewritten.strip():
-                    claim.text = rewritten.strip()
+                cleaned = _clean_rewrite(rewritten)
+                if cleaned:
+                    claim.text = cleaned
                     prob2, _ = await self._score_claim(claim, evidence)
                     claim.supported = prob2 >= self._threshold and numbers_grounded(
                         claim.text, evidence[best].text
@@ -92,7 +93,9 @@ class CitationVerifier:
             if claim.best_eid is not None:
                 claim.span = evidence[claim.best_eid].provenance
 
-        trust = (sum(c.supported for c in claims) / len(claims)) if claims else 0.0
+        # 可信度只在"带引用的论断"上计算：无引用的标题/过渡句不计入分母
+        cited = [c for c in claims if c.eids]
+        trust = (sum(c.supported for c in cited) / len(cited)) if cited else 0.0
         return VerifiedAnswer(answer=answer, claims=claims, trust=trust)
 
 
@@ -101,3 +104,13 @@ _REWRITE_PROMPT = (
     "只保留证据支持的内容，不要新增证据之外的信息。\n\n"
     "证据：{evidence}\n\n原句：{claim}\n\n改写后："
 )
+
+
+def _clean_rewrite(text: str) -> str:
+    """去掉 LLM 重写时可能带上的标签/代码块（如 "改写后：" "**...**"）。"""
+    t = text.strip()
+    for label in ("改写后：", "改写后:", "Rewritten:", "改写："):
+        if t.startswith(label):
+            t = t[len(label):].strip()
+    t = t.strip("*").strip()
+    return t
