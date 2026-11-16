@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     small_model: str = "claude-haiku-5-5"          # Reflector / query 改写 / 上下文前缀
     llm_api_base: str | None = None                # 如 https://airouter.cloud/v1
     llm_api_key: str | None = None
+    # DeepSeek 官方直连（商业化时供用户选择的低价模型）
+    deepseek_api_base: str = "https://api.deepseek.com/v1"
+    deepseek_api_key: str | None = None
 
     # --- 向量化 / 重排（硅基流动 API，无需 GPU；key 写在 .env）---
     embedding_model: str = "BAAI/bge-m3"

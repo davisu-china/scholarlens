@@ -17,6 +17,7 @@ router = APIRouter()
 class QueryRequest(BaseModel):
     question: str
     collection: str | None = None
+    model: str | None = None
     filters: dict = {}
 
 
@@ -27,7 +28,7 @@ async def query(req: QueryRequest, c: Container = Depends(get_container)) -> Eve
         filters["collection"] = req.collection
 
     async def gen():
-        async for ev in c.qa.stream(req.question, filters=filters):
+        async for ev in c.qa.stream(req.question, filters=filters, model=req.model):
             data = ev["data"] if isinstance(ev["data"], str) else json.dumps(ev["data"], ensure_ascii=False)
             yield {"event": ev["event"], "data": data}
 

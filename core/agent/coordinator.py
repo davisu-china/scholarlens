@@ -66,9 +66,9 @@ class ResearchCoordinator:
         self._coverage_target = coverage_target
         self._is_covered = is_covered
 
-    async def plan(self, question: str) -> list[str]:
+    async def plan(self, question: str, *, model: str | None = None) -> list[str]:
         plan: ResearchPlan = await self._llm.structured(
-            prompts.PLAN_PROMPT.format(question=question), ResearchPlan, model=self._strong
+            prompts.PLAN_PROMPT.format(question=question), ResearchPlan, model=model or self._strong
         )
         return [item.text for item in plan.subquestions]
 
@@ -97,10 +97,13 @@ class ResearchCoordinator:
         overall = compute_coverage(all_points, ev_texts, self._is_covered)
         return overall.coverage, missing
 
-    async def run(self, question: str, *, approved_plan: list[str] | None = None) -> ResearchResult:
+    async def run(
+        self, question: str, *, approved_plan: list[str] | None = None, model: str | None = None
+    ) -> ResearchResult:
+        """model：用户选择的强模型 id（覆盖 plan/write）；反思/改写仍用小模型。"""
         trace: list[TraceStep] = []
 
-        subquestions = approved_plan or await self.plan(question)
+        subquestions = approved_plan or await self.plan(question, model=model)
         trace.append(TraceStep("plan", f"拆解为 {len(subquestions)} 个子问题", {"subquestions": subquestions}))
 
         evidence: dict[str, Evidence] = {}
@@ -129,7 +132,7 @@ class ResearchCoordinator:
             prompts.WRITE_PROMPT.format(
                 question=question, evidence=prompts.format_evidence(evidence_map)
             ),
-            model=self._strong,
+            model=model or self._strong,
         )
         trace.append(TraceStep("write", "生成综述草稿", {"chars": len(draft)}))
 

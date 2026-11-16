@@ -58,6 +58,7 @@ curl -N -X POST http://localhost:8000/query \
 | 能力 | 云服务 | .env 配置 |
 |---|---|---|
 | LLM（生成/规划/判官） | airouter 等 OpenAI 兼容网关 | `SL_LLM_API_BASE` `SL_LLM_API_KEY` `SL_STRONG_MODEL=claude-opus-5-5` `SL_SMALL_MODEL=claude-haiku-5-5` |
+| LLM（可选·低价） | DeepSeek 官方 | `SL_DEEPSEEK_API_KEY`（配了就出现在前端模型选择器里） |
 | 向量化 + 重排 | 硅基流动 | `SL_SILICONFLOW_API_KEY`（bge-m3 / bge-reranker-v2-m3） |
 | 引用校验 | LLM 判官 | `SL_NLI_MODE=llm`（默认，用小模型逐句判断，无需 DeBERTa） |
 | PDF 解析 | MinerU 云 | `SL_MINERU_API_TOKEN` |

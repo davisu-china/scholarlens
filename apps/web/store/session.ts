@@ -13,11 +13,13 @@ interface SessionState {
   evidence: Record<string, Evidence>;
   selectedEid: string | null;
   deepMode: boolean;
+  model: string | null;
   pushMessage: (m: Message) => void;
   updateLast: (patch: Partial<Message>) => void;
   setEvidence: (e: Record<string, Evidence>) => void;
   selectEvidence: (eid: string | null) => void;
   setDeepMode: (v: boolean) => void;
+  setModel: (m: string | null) => void;
 }
 
 export const useSession = create<SessionState>((set) => ({
@@ -25,6 +27,7 @@ export const useSession = create<SessionState>((set) => ({
   evidence: {},
   selectedEid: null,
   deepMode: false,
+  model: null,
   pushMessage: (m) => set((s) => ({ messages: [...s.messages, m] })),
   updateLast: (patch) =>
     set((s) => {
@@ -35,4 +38,5 @@ export const useSession = create<SessionState>((set) => ({
   setEvidence: (e) => set({ evidence: e }),
   selectEvidence: (eid) => set({ selectedEid: eid }),
   setDeepMode: (v) => set({ deepMode: v }),
+  setModel: (m) => set({ model: m }),
 }));

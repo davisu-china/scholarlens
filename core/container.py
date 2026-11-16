@@ -55,6 +55,8 @@ def build_container(
     graph_store: GraphStore | None = None,
     nli: NLIModel | None = None,
     parser: Parser | None = None,
+    strong_model: str | None = None,   # 默认强模型 id（plan/write/qa）
+    small_model: str | None = None,    # 默认小模型 id（reflect/改写）
 ) -> Container:
     """任何未显式注入的 port 都用 fake 兜底。生产环境把真实 adapter 传进来即可。"""
     embedder = embedder or fakes.FakeEmbedder()
@@ -81,8 +83,11 @@ def build_container(
         graph_store=graph_store,
         llm=llm,
     )
-    qa = QAService(llm=llm, retriever=retriever, verifier=verifier)
-    coordinator = ResearchCoordinator(llm=llm, retriever=retriever, verifier=verifier)
+    qa = QAService(llm=llm, retriever=retriever, verifier=verifier, model=strong_model)
+    coordinator = ResearchCoordinator(
+        llm=llm, retriever=retriever, verifier=verifier,
+        strong_model=strong_model, small_model=small_model,
+    )
 
     return Container(
         embedder=embedder,

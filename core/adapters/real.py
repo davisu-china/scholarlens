@@ -14,7 +14,8 @@
 
 from __future__ import annotations
 
-from core.adapters.litellm_client import LiteLLMClient
+from core.adapters.multi_llm import MultiGatewayLLM
+from core.llm.catalog import build_catalog, default_cheap_id, default_strong_id
 from core.adapters.mineru_cloud import MinerUCloudParser
 from core.adapters.mineru_parser import MinerUParser
 from core.adapters.neo4j_graph import Neo4jGraphStore
@@ -27,7 +28,10 @@ from core.ports import LLMClient, NLIModel, Parser
 
 
 def build_real_container() -> Container:
-    llm = LiteLLMClient(default_model=settings.strong_model)
+    catalog = build_catalog()
+    strong_id = default_strong_id(catalog)
+    cheap_id = default_cheap_id(catalog)
+    llm = MultiGatewayLLM(catalog, default_id=strong_id)
     return build_container(
         llm=llm,
         embedder=SiliconFlowEmbedder(),
@@ -35,12 +39,14 @@ def build_real_container() -> Container:
         reranker=SiliconFlowReranker(),
         table_store=PostgresTableStore(),
         graph_store=Neo4jGraphStore(),
-        nli=default_nli(llm),
+        nli=default_nli(llm, cheap_id),
         parser=default_parser(),
+        strong_model=strong_id,
+        small_model=cheap_id,
     )
 
 
-def default_nli(llm: LLMClient) -> NLIModel:
+def default_nli(llm: LLMClient, cheap_model_id: str) -> NLIModel:
     """引用校验后端：默认 LLM 判官（无需 GPU），nli_mode=deberta 时用本地模型。"""
     if settings.nli_mode == "deberta":
         from core.adapters.nli import DebertaNLI
@@ -48,7 +54,7 @@ def default_nli(llm: LLMClient) -> NLIModel:
         return DebertaNLI()
     from core.adapters.llm_nli import LLMJudgeNLI
 
-    return LLMJudgeNLI(llm, model=settings.small_model)
+    return LLMJudgeNLI(llm, model=cheap_model_id)
 
 
 def default_parser() -> Parser:

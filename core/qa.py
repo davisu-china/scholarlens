@@ -45,7 +45,7 @@ class QAService:
         hits = [h for h in hits if h.score > self._min_score]
         return {eid: ev for eid, ev in enumerate_evidence(hits)}
 
-    async def answer(self, question: str, *, filters: dict | None = None) -> QAResult:
+    async def answer(self, question: str, *, filters: dict | None = None, model: str | None = None) -> QAResult:
         """非流式：一次性返回校验后的答案。"""
         evidence = await self._retrieve(question, filters or {})
         if len(evidence) < self._min_evidence:
@@ -56,13 +56,13 @@ class QAService:
             )
         draft = await self._llm.complete(
             prompts.QA_PROMPT.format(question=question, evidence=prompts.format_evidence(evidence)),
-            model=self._model,
+            model=model or self._model,
             system=prompts.QA_SYSTEM_PROMPT,
         )
         verified = await self._verifier.verify(draft, evidence)
         return QAResult(answer=verified, evidence=evidence)
 
-    async def stream(self, question: str, *, filters: dict | None = None) -> AsyncIterator[dict]:
+    async def stream(self, question: str, *, filters: dict | None = None, model: str | None = None) -> AsyncIterator[dict]:
         """流式：先吐 token，最后吐一次校验结果。供 /query 的 SSE 使用。"""
         evidence = await self._retrieve(question, filters or {})
         if len(evidence) < self._min_evidence:
@@ -73,7 +73,7 @@ class QAService:
         parts: list[str] = []
         async for tok in self._llm.stream(
             prompts.QA_PROMPT.format(question=question, evidence=prompts.format_evidence(evidence)),
-            model=self._model,
+            model=model or self._model,
             system=prompts.QA_SYSTEM_PROMPT,
         ):
             parts.append(tok)

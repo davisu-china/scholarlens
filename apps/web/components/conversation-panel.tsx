@@ -7,9 +7,10 @@ import { Answer } from "@/components/answer";
 import { ResearchTrace } from "@/components/research-trace";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ModelPicker } from "@/components/model-picker";
 
 export function ConversationPanel() {
-  const { messages, pushMessage, updateLast, setEvidence, deepMode, setDeepMode } = useSession();
+  const { messages, pushMessage, updateLast, setEvidence, deepMode, setDeepMode, model } = useSession();
   const [trace, setTrace] = useState<TraceEvent[]>([]);
   const [busy, setBusy] = useState(false);
 
@@ -22,12 +23,14 @@ export function ConversationPanel() {
     try {
       if (deepMode) {
         await deepResearch(q, {
+          model,
           onTrace: (e) => setTrace((t) => [...t, e]),
           onAnswer: (a) => updateLast({ text: a.answer, claims: a.claims, trust: a.trust }),
         });
       } else {
         let acc = "";
         await askQuestion(q, {
+          model,
           onToken: (t) => { acc += t; updateLast({ text: acc }); },
           onDone: (d) => { updateLast({ claims: d.claims, trust: d.trust }); setEvidence(d.evidence); },
         });
@@ -42,6 +45,7 @@ export function ConversationPanel() {
       <div className="flex items-center gap-2 border-b border-line px-6 py-3">
         <Button variant={deepMode ? "outline" : "default"} onClick={() => setDeepMode(false)}>快速问答</Button>
         <Button variant={deepMode ? "default" : "outline"} onClick={() => setDeepMode(true)}>深度研究</Button>
+        <div className="ml-auto"><ModelPicker /></div>
       </div>
 
       <div className="flex-1 space-y-5 overflow-y-auto p-6">

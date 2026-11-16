@@ -17,13 +17,14 @@ router = APIRouter()
 class ResearchRequest(BaseModel):
     question: str
     collection: str | None = None
+    model: str | None = None
     approved_plan: list[str] | None = None
 
 
 @router.post("")
 async def research(req: ResearchRequest, c: Container = Depends(get_container)) -> EventSourceResponse:
     async def gen():
-        result = await c.coordinator.run(req.question, approved_plan=req.approved_plan)
+        result = await c.coordinator.run(req.question, approved_plan=req.approved_plan, model=req.model)
         for step in result.trace:
             yield {"event": step.kind, "data": json.dumps({"detail": step.detail, **step.data}, ensure_ascii=False)}
         yield {
