@@ -95,7 +95,8 @@ uv run celery -A apps.worker.celery_app worker -l info
 
 > 核心业务逻辑已实现并测试（检索 / 索引 / 引用校验 / 研究 Agent / 评测，55 测试全绿）。
 > 真实 adapter（Qdrant/Neo4j/LiteLLM/BGE/DeBERTa/MinerU）照 port 实现、结构契约已测；
-> 其与模型、GPU、外部服务的联调需在本地环境完成。
+> 其与模型、GPU、外部服务的联调需在本地环境完成——详见
+> [`docs/LOCAL_SETUP.md`](docs/LOCAL_SETUP.md)。
 
 ## 文档
 
