@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 
 from core.domain import Evidence, Query
+from core.obs import langfuse as obs
 from core.ports import Embedder, GraphStore, Reranker, TableStore, VectorStore
 
 
@@ -84,11 +85,17 @@ class HybridRetriever:
         return await self._vs.search_dense(gq.dense_vec or [], gq.filters, self._recall_limit)
 
     async def retrieve(self, q: Query) -> list[Evidence]:
-        q = await self._ensure_vectors(q)
-        dense, sparse, table, graph = await asyncio.gather(
-            self._dense(q), self._sparse(q), self._table(q), self._graph(q)
-        )
-        fused = rrf_fuse([dense, sparse, table, graph])[: self._fuse_top]
-        if not fused:
-            return []
-        return await self._reranker.rerank(q.text, fused, q.top_k)
+        with obs.span("retrieve", q.text) as sink:
+            q = await self._ensure_vectors(q)
+            dense, sparse, table, graph = await asyncio.gather(
+                self._dense(q), self._sparse(q), self._table(q), self._graph(q)
+            )
+            fused = rrf_fuse([dense, sparse, table, graph])[: self._fuse_top]
+            sink(metadata={"dense": len(dense), "sparse": len(sparse),
+                           "table": len(table), "graph": len(graph), "fused": len(fused)})
+            if not fused:
+                return []
+            with obs.span("rerank") as rsink:
+                reranked = await self._reranker.rerank(q.text, fused, q.top_k)
+                rsink(metadata={"in": len(fused), "out": len(reranked)})
+            return reranked

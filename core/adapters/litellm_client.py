@@ -17,7 +17,7 @@ from collections.abc import AsyncIterator
 from pydantic import BaseModel
 
 from core.config import settings
-from core.llm import usage
+from core.llm import pricing, usage
 from core.obs import langfuse as obs
 
 
@@ -62,11 +62,15 @@ class LiteLLMClient:
         u = getattr(resp, "usage", None)
         if not u:
             return
-        usage.record(
-            model or self._default,
-            int(getattr(u, "prompt_tokens", 0) or 0),
-            int(getattr(u, "completion_tokens", 0) or 0),
-        )
+        concrete = model or self._default
+        it = int(getattr(u, "prompt_tokens", 0) or 0)
+        ot = int(getattr(u, "completion_tokens", 0) or 0)
+        usage.record(concrete, it, ot)
+        try:
+            from core.obs.metrics import record_llm
+            record_llm(concrete, it, ot, pricing.cost_cny(concrete, it, ot))
+        except Exception:
+            pass
 
     def _messages(self, prompt: str, system: str | None) -> list[dict]:
         msgs = []

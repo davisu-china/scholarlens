@@ -44,9 +44,10 @@ async def query(
     async def gen():
         acc = usage.start()
         obs.set_context(user_id=user, feature="qa")
-        async for ev in c.qa.stream(req.question, filters=filters, model=req.model):
-            data = ev["data"] if isinstance(ev["data"], str) else json.dumps(ev["data"], ensure_ascii=False)
-            yield {"event": ev["event"], "data": data}
+        with obs.span("qa-request", req.question):
+            async for ev in c.qa.stream(req.question, filters=filters, model=req.model):
+                data = ev["data"] if isinstance(ev["data"], str) else json.dumps(ev["data"], ensure_ascii=False)
+                yield {"event": ev["event"], "data": data}
         await billing.record(user, ACTION_QUERY, model_id=req.model, cost_cny=acc.total_cost_cny)
 
     return EventSourceResponse(gen())

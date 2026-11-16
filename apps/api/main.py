@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
-from fastapi import FastAPI
+import time
+
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from apps.api.routers import eval as eval_router
 from apps.api.routers import auth, billing, ingest, models, papers, query, research
@@ -38,6 +41,25 @@ app.include_router(papers.router, prefix="/papers", tags=["papers"])
 app.include_router(models.router, prefix="/models", tags=["models"])
 app.include_router(billing.router, prefix="/billing", tags=["billing"])
 app.include_router(eval_router.router, prefix="/eval", tags=["eval"])
+
+
+@app.middleware("http")
+async def _prometheus_mw(request: Request, call_next):
+    from core.obs.metrics import HTTP_LATENCY, HTTP_REQUESTS
+
+    start = time.perf_counter()
+    response = await call_next(request)
+    # 用路由模板而非实际路径，避免 path 基数爆炸
+    route = request.scope.get("route")
+    path = getattr(route, "path", request.url.path)
+    HTTP_REQUESTS.labels(method=request.method, path=path, status=response.status_code).inc()
+    HTTP_LATENCY.labels(method=request.method, path=path).observe(time.perf_counter() - start)
+    return response
+
+
+@app.get("/metrics")
+async def metrics() -> Response:
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 @app.get("/health")

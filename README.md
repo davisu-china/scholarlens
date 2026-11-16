@@ -22,7 +22,7 @@
 | 解析 | MinerU（版面 / 公式 / 表格 / 坐标）|
 | LLM 网关 | LiteLLM（Claude via airouter、DeepSeek 官方…）|
 | 存储 | Qdrant（向量）· PostgreSQL · Neo4j（引用图）· MinIO · Redis |
-| 可观测 | Langfuse（每次 LLM 调用的 trace / token / 延迟）|
+| 可观测 | Langfuse（全链路 trace）· Prometheus（/metrics）|
 
 架构采用**六边形（Ports & Adapters）**：所有外部系统都抽象成接口，每个接口都有
 真实实现和内存假实现——因此核心逻辑可在不依赖任何外部服务的情况下端到端测试，
@@ -195,7 +195,7 @@ Langfuse）均已在真实环境端到端验证。
 
 **已实现并验证**：文档解析、多粒度索引、混合检索与重排、深度研究 Agent、引用校验、
 多模型选择、登录鉴权、套餐与配额、支付回调、token 成本计量、Postgres 存储、
-Redis 缓存、Langfuse 可观测、前端三栏界面与评测框架。
+Redis 缓存、可观测（Langfuse 全链路 span + Prometheus 指标）、前端三栏界面与评测框架。
 
 **尚未完成**（后续增量）：
 
@@ -203,7 +203,6 @@ Redis 缓存、Langfuse 可观测、前端三栏界面与评测框架。
   可中断的 LangGraph 封装）
 - Qdrant / Neo4j / Postgres-RAG adapter 的真实服务联调（代码与接口契约已就绪）
 - 前端 PDF 阅读器的 bbox 高亮（当前为占位）、知识库按 collection 的真实分组
-- 检索 / 重排等非 LLM 阶段的 Langfuse span；Prometheus 指标
 - 真实支付网关对接（当前为签名校验骨架 + 模拟支付）
 
 ---

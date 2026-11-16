@@ -14,6 +14,7 @@ from __future__ import annotations
 import contextlib
 import contextvars
 import os
+import time
 from dataclasses import dataclass
 
 from core.config import settings
@@ -97,6 +98,34 @@ def generation(name: str, model: str, input_payload):
                     metadata=_trace_metadata(ctx),
                 )
         yield _sink
+
+
+@contextlib.contextmanager
+def span(name: str, input_payload=None):
+    """把一个非 LLM 阶段（检索 / 重排 / 校验 …）包成 Langfuse span。
+
+    借 OTEL 的当前上下文自动嵌套在外层 span 之下，形成完整的 trace 树。
+    yield 一个 handle：handle(output=..., **meta) 回填结果。未启用时为 no-op。
+    """
+    start = time.perf_counter()
+    try:
+        if not _enabled or _client is None:
+            yield lambda **_k: None
+            return
+        try:
+            cm = _client.start_as_current_observation(as_type="span", name=name, input=input_payload)
+        except Exception:
+            yield lambda **_k: None
+            return
+        with cm as sp:
+            def _sink(**fields) -> None:
+                with contextlib.suppress(Exception):
+                    sp.update(**fields)
+            yield _sink
+    finally:
+        with contextlib.suppress(Exception):
+            from core.obs.metrics import STAGE_LATENCY
+            STAGE_LATENCY.labels(stage=name).observe(time.perf_counter() - start)
 
 
 def _trace_metadata(ctx: ObsContext) -> dict:

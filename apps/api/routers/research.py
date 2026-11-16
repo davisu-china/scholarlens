@@ -43,7 +43,8 @@ async def research(
     async def gen():
         acc = usage.start()
         obs.set_context(user_id=user, feature="research")
-        result = await c.coordinator.run(req.question, approved_plan=req.approved_plan, model=req.model)
+        with obs.span("research-request", req.question):
+            result = await c.coordinator.run(req.question, approved_plan=req.approved_plan, model=req.model)
         for step in result.trace:
             yield {"event": step.kind, "data": json.dumps({"detail": step.detail, **step.data}, ensure_ascii=False)}
         yield {

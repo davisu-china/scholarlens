@@ -13,6 +13,7 @@ from __future__ import annotations
 import re
 
 from core.domain import Claim, Evidence, VerifiedAnswer
+from core.obs import langfuse as obs
 from core.ports import LLMClient, NLIModel
 
 # 句尾引用：支持 [e1] 或 [e1][e2] 或 [e1, e2]
@@ -70,6 +71,10 @@ class CitationVerifier:
         return probs[best_i], cited[best_i]
 
     async def verify(self, answer: str, evidence: dict[str, Evidence]) -> VerifiedAnswer:
+        with obs.span("verify") as sink:
+            return await self._verify(answer, evidence, sink)
+
+    async def _verify(self, answer, evidence, sink) -> VerifiedAnswer:
         claims = split_claims(answer)
         for claim in claims:
             prob, best = await self._score_claim(claim, evidence)
@@ -96,6 +101,7 @@ class CitationVerifier:
         # 可信度只在"带引用的论断"上计算：无引用的标题/过渡句不计入分母
         cited = [c for c in claims if c.eids]
         trust = (sum(c.supported for c in cited) / len(cited)) if cited else 0.0
+        sink(metadata={"claims": len(claims), "cited": len(cited), "trust": trust})
         return VerifiedAnswer(answer=answer, claims=claims, trust=trust)
 
 
