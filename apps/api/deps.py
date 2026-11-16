@@ -39,10 +39,18 @@ from core.billing.orders import InMemoryOrderStore  # noqa: E402
 from core.billing.payment import PaymentService  # noqa: E402
 from core.config import settings  # noqa: E402
 
-_SUBS = InMemorySubscriptionStore()
-_USAGE = InMemoryUsageStore()
-_USERS = InMemoryUserStore()
-_ORDERS = InMemoryOrderStore()
+def _build_stores():
+    """按 settings.use_db 选择存储后端：Postgres 或内存。"""
+    if settings.use_db:
+        from core.db.engine import get_engine
+        from core.db.stores import SqlOrderStore, SqlSubscriptionStore, SqlUsageStore, SqlUserStore
+
+        eng = get_engine()
+        return (SqlSubscriptionStore(eng), SqlUsageStore(eng), SqlUserStore(eng), SqlOrderStore(eng))
+    return (InMemorySubscriptionStore(), InMemoryUsageStore(), InMemoryUserStore(), InMemoryOrderStore())
+
+
+_SUBS, _USAGE, _USERS, _ORDERS = _build_stores()
 
 
 @lru_cache

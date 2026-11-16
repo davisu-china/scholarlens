@@ -10,6 +10,11 @@ class Settings(BaseSettings):
 
     # --- storage ---
     postgres_dsn: str = "postgresql+psycopg://scholarlens:scholarlens@localhost:5432/scholarlens"
+    # 应用数据库（用户/订阅/用量/订单）。默认复用 postgres_dsn；测试可指向 sqlite+aiosqlite
+    database_url: str = "postgresql+psycopg://scholarlens:scholarlens@localhost:5432/scholarlens"
+    use_db: bool = False      # True=用 Postgres 存储，False=内存（雏形/测试）
+    # 缓存
+    cache_enabled: bool = False
     qdrant_url: str = "http://localhost:6333"
     neo4j_uri: str = "bolt://localhost:7687"
     neo4j_user: str = "neo4j"

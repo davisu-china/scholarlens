@@ -12,10 +12,15 @@ app = FastAPI(title="ScholarLens API", version="0.1.0")
 
 
 @app.on_event("startup")
-async def _enable_observability() -> None:
+async def _startup() -> None:
+    from core.config import settings
     from core.obs.langfuse import setup_langfuse
 
     setup_langfuse()
+    if settings.use_db:
+        from core.db.engine import create_all, get_engine
+
+        await create_all(get_engine())  # 幂等建表
 
 app.add_middleware(
     CORSMiddleware,

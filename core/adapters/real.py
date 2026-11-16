@@ -21,6 +21,7 @@ from core.adapters.mineru_parser import MinerUParser
 from core.adapters.neo4j_graph import Neo4jGraphStore
 from core.adapters.postgres_tables import PostgresTableStore
 from core.adapters.qdrant_store import QdrantVectorStore
+from core.adapters.cached_embedder import CachedEmbedder
 from core.adapters.siliconflow import SiliconFlowEmbedder, SiliconFlowReranker
 from core.config import settings
 from core.container import Container, build_container
@@ -34,7 +35,7 @@ def build_real_container() -> Container:
     llm = MultiGatewayLLM(catalog, default_id=strong_id)
     return build_container(
         llm=llm,
-        embedder=SiliconFlowEmbedder(),
+        embedder=_embedder(),
         vector_store=QdrantVectorStore(),
         reranker=SiliconFlowReranker(),
         table_store=PostgresTableStore(),
@@ -60,3 +61,14 @@ def default_nli(llm: LLMClient, cheap_model_id: str) -> NLIModel:
 def default_parser() -> Parser:
     """有 MinerU 云 token 就用云解析（无需 GPU），否则用本地 MinerU。"""
     return MinerUCloudParser() if settings.mineru_api_token else MinerUParser()
+
+
+def _embedder():
+    """向量化器；开启缓存时用 Redis 包一层，减少重复文本的 API 调用。"""
+    base = SiliconFlowEmbedder()
+    if settings.cache_enabled:
+        from core.adapters.cached_embedder import CachedEmbedder
+        from core.cache.redis_cache import RedisCache
+
+        return CachedEmbedder(base, RedisCache(), model_tag=settings.embedding_model)
+    return base

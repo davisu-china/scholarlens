@@ -18,6 +18,7 @@ dependencies = [
     "redis>=5.2",
     # storage
     "sqlalchemy>=2.0",
+    "greenlet>=3.0",                        # SQLAlchemy async 运行时需要
     "alembic>=1.14",
     "psycopg[binary]>=3.2",                # PostgreSQL
     "qdrant-client>=1.12",                 # vector store
@@ -43,6 +44,7 @@ dependencies = [
 dev = [
     "pytest>=8.3",
     "pytest-asyncio>=0.24",
+    "aiosqlite>=0.20",
     "ruff>=0.7",
     "mypy>=1.13",
 ]

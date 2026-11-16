@@ -69,6 +69,8 @@ curl -N -X POST http://localhost:8000/query \
 ```bash
 docker compose -f deploy/docker-compose.yml up -d   # 只需 Qdrant/Postgres/Neo4j/MinIO/Redis
 export SL_USE_REAL_ADAPTERS=1
+export SL_USE_DB=1          # 用户/订阅/用量/订单 存 Postgres（启动自动建表）
+export SL_CACHE_ENABLED=1   # 开启 Redis 缓存 embedding
 uv run uvicorn apps.api.main:app --reload
 ```
 
