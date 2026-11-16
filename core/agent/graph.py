@@ -11,7 +11,7 @@ from __future__ import annotations
 import operator
 from typing import Annotated, TypedDict
 
-from core.retrieval.hybrid import Evidence
+from core.domain import Evidence
 
 
 class SubQuestion(TypedDict):

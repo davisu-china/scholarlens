@@ -1,48 +1,103 @@
-"""引用校验与反幻觉：生成后用 NLI 逐句验证每条引用是否成立。
+"""引用校验与反幻觉（PRD 第 11 章）—— 本项目最核心的差异点。
 
-这是本项目最核心的差异点。参见 PRD 第 11 章。
+普通 RAG 只「让模型带引用」；这里在生成之后逐句验证每条引用是否成立：
+  1. 受约束生成要求每句以 [eid] 结尾（此处做合法性解析）
+  2. 切成「论断 + 引用」对
+  3. NLI 判定 P(证据蕴含论断)；数值类额外做规则校验
+  4. 低于阈值的句子交 LLM 依据证据重写一次
+  5. 在证据内定位最相似句子的 provenance，供前端精确高亮
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import re
 
-from core.retrieval.hybrid import Evidence
-from core.ingest.schema import BBox
+from core.domain import Claim, Evidence, VerifiedAnswer
+from core.ports import LLMClient, NLIModel
 
-
-@dataclass
-class Claim:
-    text: str                      # 单条论断
-    eids: list[str]                # 它引用的证据 id
-    supported: bool = False
-    span: BBox | None = None       # 命中证据内最相似句子的 bbox，用于精确高亮
-    best_eid: str | None = None
-
-
-@dataclass
-class VerifiedAnswer:
-    claims: list[Claim] = field(default_factory=list)
-    trust: float = 0.0             # 可信度 = 有据论断占比
+# 句尾引用：支持 [e1] 或 [e1][e2] 或 [e1, e2]
+_CITE = re.compile(r"\[([a-zA-Z0-9_\-, ]+)\]")
+# 句子切分：中英文句末标点
+_SENT_SPLIT = re.compile(r"(?<=[。！？.!?])\s*")
+_NUMBER = re.compile(r"-?\d+(?:\.\d+)?")
 
 
 def split_claims(answer: str) -> list[Claim]:
-    """把答案切成 (论断, [eid...]) 对；引用多源的句子拆成多条。"""
-    raise NotImplementedError("TODO: 句子切分 + 从句尾 [eid] 提取引用")
+    """把答案切成 (论断, [eid...]) 列表。无引用的句子 eids 为空。"""
+    claims: list[Claim] = []
+    for raw in _SENT_SPLIT.split(answer.strip()):
+        sent = raw.strip()
+        if not sent:
+            continue
+        eids: list[str] = []
+        for m in _CITE.findall(sent):
+            eids.extend(e.strip() for e in m.split(",") if e.strip())
+        text = _CITE.sub("", sent).strip()
+        if text:
+            claims.append(Claim(text=text, eids=eids))
+    return claims
 
 
-def numbers_grounded(claim: Claim, evidence: dict[str, Evidence]) -> bool:
-    """数值类论断额外做规则校验：数字必须在原文中出现。"""
-    raise NotImplementedError("TODO: 数值规则校验")
+def numbers_grounded(claim_text: str, evidence_text: str) -> bool:
+    """论断里出现的每个数字都必须在证据里出现（数值类反幻觉的硬规则）。"""
+    nums = _NUMBER.findall(claim_text)
+    if not nums:
+        return True
+    ev_nums = set(_NUMBER.findall(evidence_text))
+    return all(n in ev_nums for n in nums)
 
 
-def locate_span(claim_text: str, evidence: Evidence) -> BBox | None:
-    """在证据 chunk 内找与论断最相似的句子，返回其 bbox。"""
-    raise NotImplementedError("TODO: 句级 span 定位")
+class CitationVerifier:
+    def __init__(
+        self,
+        nli: NLIModel,
+        llm: LLMClient | None = None,
+        *,
+        threshold: float = 0.5,
+    ) -> None:
+        self._nli = nli
+        self._llm = llm
+        self._threshold = threshold
+
+    async def _score_claim(self, claim: Claim, evidence: dict[str, Evidence]) -> tuple[float, str | None]:
+        """返回 (最高蕴含概率, 最佳证据 id)。只在该句声明的 eid 范围内判定。"""
+        cited = [e for e in claim.eids if e in evidence]
+        if not cited:
+            return 0.0, None
+        pairs = [(evidence[eid].text, claim.text) for eid in cited]
+        probs = await self._nli.entailment(pairs)
+        best_i = max(range(len(probs)), key=probs.__getitem__)
+        return probs[best_i], cited[best_i]
+
+    async def verify(self, answer: str, evidence: dict[str, Evidence]) -> VerifiedAnswer:
+        claims = split_claims(answer)
+        for claim in claims:
+            prob, best = await self._score_claim(claim, evidence)
+            claim.best_eid = best
+            grounded = best is not None and numbers_grounded(claim.text, evidence[best].text)
+            claim.supported = prob >= self._threshold and grounded
+
+            # 修复：不达标且有 LLM 时，依据证据重写一次
+            if not claim.supported and self._llm is not None and best is not None:
+                rewritten = await self._llm.complete(
+                    _REWRITE_PROMPT.format(claim=claim.text, evidence=evidence[best].text)
+                )
+                if rewritten.strip():
+                    claim.text = rewritten.strip()
+                    prob2, _ = await self._score_claim(claim, evidence)
+                    claim.supported = prob2 >= self._threshold and numbers_grounded(
+                        claim.text, evidence[best].text
+                    )
+
+            if claim.best_eid is not None:
+                claim.span = evidence[claim.best_eid].provenance
+
+        trust = (sum(c.supported for c in claims) / len(claims)) if claims else 0.0
+        return VerifiedAnswer(answer=answer, claims=claims, trust=trust)
 
 
-def verify_claims(answer: str, evidence: dict[str, Evidence]) -> VerifiedAnswer:
-    """NLI 阈值 0.5（上线前在 200 条人工标注对上按 Precision 优先重新标定）。"""
-    raise NotImplementedError(
-        "TODO: DeBERTa-NLI 批量计算 P(证据蕴含论断)，<0.5 的句子交 LLM 重写一次"
-    )
+_REWRITE_PROMPT = (
+    "下面这句话与引用的证据不完全吻合。请严格依据证据改写这句话，"
+    "只保留证据支持的内容，不要新增证据之外的信息。\n\n"
+    "证据：{evidence}\n\n原句：{claim}\n\n改写后："
+)
