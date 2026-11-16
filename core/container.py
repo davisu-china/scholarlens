@@ -12,7 +12,9 @@ from core.adapters import fakes
 from core.agent.coordinator import ResearchCoordinator
 from core.index.indexer import Indexer
 from core.index.table_extractor import TableExtractor
+from core.index.registry import InMemoryPaperRegistry, PaperRegistry
 from core.ports import (
+    BlobStore,
     Embedder,
     GraphStore,
     LLMClient,
@@ -43,6 +45,8 @@ class Container:
     qa: QAService
     coordinator: ResearchCoordinator
     parser: Parser | None = None   # PDF 解析器；未配置时 /ingest 无法解析
+    blob: BlobStore | None = None
+    registry: PaperRegistry | None = None
 
 
 def build_container(
@@ -55,6 +59,8 @@ def build_container(
     graph_store: GraphStore | None = None,
     nli: NLIModel | None = None,
     parser: Parser | None = None,
+    blob: BlobStore | None = None,
+    registry: PaperRegistry | None = None,
     strong_model: str | None = None,   # 默认强模型 id（plan/write/qa）
     small_model: str | None = None,    # 默认小模型 id（reflect/改写）
 ) -> Container:
@@ -66,6 +72,8 @@ def build_container(
     graph_store = graph_store or fakes.FakeGraphStore()
     llm = llm or fakes.FakeLLM()
     nli = nli or fakes.FakeNLI()
+    blob = blob or fakes.FakeBlobStore()
+    registry = registry or InMemoryPaperRegistry()
 
     retriever = HybridRetriever(
         embedder=embedder,
@@ -103,4 +111,6 @@ def build_container(
         qa=qa,
         coordinator=coordinator,
         parser=parser,
+        blob=blob,
+        registry=registry,
     )

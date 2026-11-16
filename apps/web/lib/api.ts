@@ -64,3 +64,21 @@ export async function downgradeFree() {
   // 免费套餐无需支付，雏形下单接口会拒绝；降级在生产由订阅到期处理。
   // 这里演示用：直接下单 pro 的反向——省略，UI 只在付费态提供“查看用量”。
 }
+
+export async function fetchCollections() {
+  const r = await fetch("/api/papers/collections", { headers: await authHeaders() });
+  return r.json() as Promise<{ name: string; count: number }[]>;
+}
+
+export async function fetchPapers(collection?: string) {
+  const q = collection ? `?collection=${encodeURIComponent(collection)}` : "";
+  const r = await fetch(`/api/papers${q}`, { headers: await authHeaders() });
+  return r.json() as Promise<{ paper_id: string; title: string; collection: string; n_chunks: number; year: number | null }[]>;
+}
+
+// PDF 带鉴权取回后生成临时 URL（react-pdf 用）
+export async function fetchPdfUrl(paperId: string): Promise<string> {
+  const r = await fetch(`/api/papers/${paperId}/pdf`, { headers: await authHeaders() });
+  if (!r.ok) throw new Error("pdf not found");
+  return URL.createObjectURL(await r.blob());
+}

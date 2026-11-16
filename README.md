@@ -197,13 +197,12 @@ Langfuse）均已在真实环境端到端验证。
 多模型选择、登录鉴权、套餐与配额、支付回调、token 成本计量、Postgres 存储、
 Redis 缓存、可观测（Langfuse 全链路 span + Prometheus 指标）、前端三栏界面与评测框架。
 
-**尚未完成**（后续增量）：
+新增：LangGraph 绑定（研究 Agent 可中断、可恢复、带 checkpoint 的 human-in-the-loop，
+见 `/research/plan` + `/research/resume`）、前端 PDF 原文 bbox 高亮与知识库按 collection
+真实分组、Qdrant / Neo4j 的集成测试（`tests/integration`，起好服务后 `pytest tests/integration`）。
 
-- `core/agent/graph.py` 的 LangGraph 绑定（研究协调器已可独立运行，仅缺 checkpoint /
-  可中断的 LangGraph 封装）
-- Qdrant / Neo4j / Postgres-RAG adapter 的真实服务联调（代码与接口契约已就绪）
-- 前端 PDF 阅读器的 bbox 高亮（当前为占位）、知识库按 collection 的真实分组
-- 真实支付网关对接（当前为签名校验骨架 + 模拟支付）
+**尚未完成**：真实支付网关对接（当前为 HMAC 签名校验骨架 + 模拟支付，`/billing/webhook`
+已可接入微信/支付宝/Stripe 的真实回调）。
 
 ---
 

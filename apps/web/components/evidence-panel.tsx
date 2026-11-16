@@ -2,12 +2,14 @@
 import { useSession } from "@/store/session";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PdfViewer } from "@/components/pdf-viewer";
 import { cn } from "@/lib/utils";
 
-/** 右栏：证据卡片 + PDF 原文占位。点击答案角标会高亮对应证据。 */
+/** 右栏：证据卡片 + PDF 原文高亮。点击答案角标或证据卡片即定位到原文坐标。 */
 export function EvidencePanel() {
   const { evidence, selectedEid, selectEvidence } = useSession();
   const items = Object.entries(evidence);
+  const sel = selectedEid ? evidence[selectedEid] : null;
 
   return (
     <aside className="flex flex-col gap-4 overflow-y-auto bg-surface/40 p-5">
@@ -18,14 +20,11 @@ export function EvidencePanel() {
       )}
 
       {items.map(([eid, ev]) => (
-        <Card
-          key={eid}
-          className={cn("cursor-pointer transition", selectedEid === eid && "border-accent")}
-          onClick={() => selectEvidence(eid)}
-        >
+        <Card key={eid} className={cn("cursor-pointer transition", selectedEid === eid && "border-accent")}
+              onClick={() => selectEvidence(eid)}>
           <CardBody>
             <div className="mb-1 flex items-center justify-between">
-              <Badge tone="default">[{eid}]</Badge>
+              <Badge>[{eid}]</Badge>
               <span className="text-xs text-[#6b7385]">
                 {ev.provenance.paper_id} · p.{ev.provenance.bboxes?.[0]?.page ?? "?"}
               </span>
@@ -38,11 +37,8 @@ export function EvidencePanel() {
         </Card>
       ))}
 
-      {selectedEid && evidence[selectedEid] && (
-        <div className="mt-2 rounded-lg border border-line p-3 text-xs text-[#98a1b3]">
-          PDF 原文预览（接 react-pdf）：第 {evidence[selectedEid].provenance.bboxes?.[0]?.page ?? "?"} 页，
-          叠加 bbox 高亮 — 此处为占位。
-        </div>
+      {sel && sel.provenance.bboxes?.length > 0 && (
+        <PdfViewer paperId={sel.provenance.paper_id} provenance={sel.provenance} />
       )}
     </aside>
   );
