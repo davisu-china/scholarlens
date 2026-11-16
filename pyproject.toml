@@ -28,8 +28,6 @@ dependencies = [
     "langgraph>=0.2.50",
     "langchain-core>=0.3",
     "litellm>=1.52",                       # unified LLM gateway
-    "FlagEmbedding>=1.3",                  # BGE-M3 / bge-reranker
-    "transformers>=4.46",                  # DeBERTa-NLI
     "rank-bm25>=0.2.2",
     # ingestion / parsing (heavy; install extras as needed)
     # "magic-pdf",   # MinerU — install per its own guide (GPU)
@@ -42,6 +40,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# 本地模型（BGE-M3 向量化/重排 + DeBERTa 引用校验）。默认走云 API，无需安装；
+# 需要时：uv sync --extra local-models，并设 SL_NLI_MODE=deberta
+local-models = [
+    "FlagEmbedding>=1.3",                  # BGE-M3 / bge-reranker
+    "transformers>=4.46",                  # DeBERTa-NLI
+]
 dev = [
     "pytest>=8.3",
     "pytest-asyncio>=0.24",
