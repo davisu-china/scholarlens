@@ -48,10 +48,14 @@ class LiteLLMClient:
             extra["api_base"] = self._api_base
         if self._api_key:
             extra["api_key"] = self._api_key
-        md = obs.current_metadata()
-        if md:
-            extra["metadata"] = md
         return extra
+
+    @staticmethod
+    def _tokens(resp) -> tuple[int, int]:
+        u = getattr(resp, "usage", None)
+        if not u:
+            return 0, 0
+        return (int(getattr(u, "prompt_tokens", 0) or 0), int(getattr(u, "completion_tokens", 0) or 0))
 
     def _meter(self, model: str | None, resp) -> None:
         """把本次调用的 token 用量记入当前请求的累加器（按底层模型名计价）。"""
@@ -74,14 +78,19 @@ class LiteLLMClient:
     async def complete(self, prompt: str, *, model: str | None = None, system: str | None = None) -> str:
         import litellm
 
-        resp = await litellm.acompletion(
-            model=self._model(model),
-            messages=self._messages(prompt, system),
-            fallbacks=self._fallbacks or None,
-            **self._extra(),
-        )
-        self._meter(model, resp)
-        return resp.choices[0].message.content or ""
+        concrete = model or self._default
+        with obs.generation(obs._context().feature or "complete", concrete, prompt) as sink:
+            resp = await litellm.acompletion(
+                model=self._model(model),
+                messages=self._messages(prompt, system),
+                fallbacks=self._fallbacks or None,
+                **self._extra(),
+            )
+            self._meter(model, resp)
+            content = resp.choices[0].message.content or ""
+            pt, ct = self._tokens(resp)
+            sink(content, pt, ct)
+        return content
 
     async def stream(
         self, prompt: str, *, model: str | None = None, system: str | None = None
@@ -109,14 +118,18 @@ class LiteLLMClient:
             f"{prompt}\n\n只输出严格符合以下 JSON Schema 的 JSON，不要额外文字、不要代码块：\n"
             f"{json.dumps(schema.model_json_schema(), ensure_ascii=False)}"
         )
-        resp = await litellm.acompletion(
-            model=self._model(model),
-            messages=[{"role": "user", "content": instruction}],
-            response_format={"type": "json_object"},
-            **self._extra(),
-        )
-        self._meter(model, resp)
-        content = resp.choices[0].message.content or "{}"
+        concrete = model or self._default
+        with obs.generation(f"{obs._context().feature or 'structured'}:json", concrete, instruction) as sink:
+            resp = await litellm.acompletion(
+                model=self._model(model),
+                messages=[{"role": "user", "content": instruction}],
+                response_format={"type": "json_object"},
+                **self._extra(),
+            )
+            self._meter(model, resp)
+            content = resp.choices[0].message.content or "{}"
+            pt, ct = self._tokens(resp)
+            sink(content, pt, ct)
         return schema.model_validate_json(_strip_fence(content))
 
 

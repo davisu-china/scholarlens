@@ -34,7 +34,8 @@ dependencies = [
     # ingestion / parsing (heavy; install extras as needed)
     # "magic-pdf",   # MinerU — install per its own guide (GPU)
     # observability
-    "langfuse>=2.53",
+    "langfuse>=5,<6",                       # 可观测（OTEL SDK；v4 的旧 ingest 已停用）
+    "opentelemetry-exporter-otlp-proto-http>=1.20",
     "prometheus-client>=0.21",
     "structlog>=24.4",
     "httpx>=0.27",

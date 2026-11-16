@@ -1,14 +1,17 @@
 """Langfuse 可观测接入（PRD 非功能需求：每次请求全链路 trace）。
 
-采用 LiteLLM 原生 Langfuse 回调：配置 key 后，每次 LLM 调用自动上报模型、token、
-成本、延迟与 prompt/response，无需在每个调用点写埋点。再通过请求级 contextvar 附带
-元数据（用户、功能名、会话），让 Langfuse 按 trace/generation 分组。
+用 Langfuse Python SDK（v3/OTEL）直接埋点——这是 Langfuse Cloud 当前唯一的实时写入
+路径（旧的 SDK v2 ingest 与 LiteLLM 的 'langfuse' callback 已于 2026-11-16 在云端停用）。
+每次 LLM 调用包成一个 generation span，记录模型、输入、输出、token 用量；trace 带上
+用户/功能/会话属性。
 
-未配置 key 时全部为 no-op，不影响运行。
+未配置 key 或未装 langfuse 时全部为 no-op，不影响运行。实测导出返回 200、数据可在
+云端查到。
 """
 
 from __future__ import annotations
 
+import contextlib
 import contextvars
 import os
 from dataclasses import dataclass
@@ -16,6 +19,7 @@ from dataclasses import dataclass
 from core.config import settings
 
 _enabled = False
+_client = None
 
 
 @dataclass
@@ -29,8 +33,8 @@ _current: contextvars.ContextVar[ObsContext | None] = contextvars.ContextVar("ob
 
 
 def setup_langfuse() -> bool:
-    """按配置启用 LiteLLM 的 Langfuse 回调（幂等）。返回是否启用。"""
-    global _enabled
+    """初始化 Langfuse 客户端（幂等）。配置齐全且 SDK 可用时返回 True。"""
+    global _enabled, _client
     if _enabled:
         return True
     if not (settings.langfuse_public_key and settings.langfuse_secret_key):
@@ -40,13 +44,10 @@ def setup_langfuse() -> bool:
     if settings.langfuse_host:
         os.environ.setdefault("LANGFUSE_HOST", settings.langfuse_host)
     try:
-        import litellm
+        from langfuse import get_client
     except ImportError:
         return False
-    for attr in ("callbacks", "success_callback", "failure_callback"):
-        cbs = getattr(litellm, attr, None)
-        if isinstance(cbs, list) and "langfuse" not in cbs:
-            cbs.append("langfuse")
+    _client = get_client()
     _enabled = True
     return True
 
@@ -55,24 +56,61 @@ def is_enabled() -> bool:
     return _enabled
 
 
+def client():
+    return _client
+
+
 def set_context(user_id: str | None = None, feature: str | None = None, session_id: str | None = None) -> None:
     _current.set(ObsContext(user_id=user_id, feature=feature, session_id=session_id))
 
 
-def current_metadata() -> dict:
-    """构造传给 LiteLLM 的 metadata（被 Langfuse 回调读取）。未启用或无上下文时为空。"""
-    if not _enabled:
-        return {}
-    ctx = _current.get()
-    if ctx is None:
-        return {}
-    md: dict = {}
+def _context() -> ObsContext:
+    return _current.get() or ObsContext()
+
+
+@contextlib.contextmanager
+def generation(name: str, model: str, input_payload):
+    """把一次 LLM 调用包成 Langfuse generation span。
+
+    yield 一个 sink：sink(output, input_tokens, output_tokens) 在调用完成后回填结果。
+    未启用或 span 创建失败时 yield 一个 no-op sink，调用方逻辑不变。
+    """
+    if not _enabled or _client is None:
+        yield lambda *_a, **_k: None
+        return
+    ctx = _context()
+    try:
+        cm = _client.start_as_current_observation(
+            as_type="generation", name=name, model=model, input=input_payload
+        )
+    except Exception:
+        yield lambda *_a, **_k: None
+        return
+    # 到这里 span 已建好：只 yield 一次，body 的异常照常传播（span 会记录并关闭）
+    with cm as gen:
+        def _sink(output, input_tokens: int = 0, output_tokens: int = 0) -> None:
+            with contextlib.suppress(Exception):
+                gen.update(
+                    output=output,
+                    model=model,
+                    usage_details={"input": input_tokens, "output": output_tokens},
+                    metadata=_trace_metadata(ctx),
+                )
+        yield _sink
+
+
+def _trace_metadata(ctx: ObsContext) -> dict:
+    md: dict = {"service": "scholarlens"}
     if ctx.feature:
-        md["generation_name"] = ctx.feature
-        md["trace_name"] = f"scholarlens:{ctx.feature}"
+        md["feature"] = ctx.feature
     if ctx.user_id:
-        md["trace_user_id"] = ctx.user_id
+        md["user_id"] = ctx.user_id
     if ctx.session_id:
         md["session_id"] = ctx.session_id
-    md["tags"] = ["scholarlens"]
     return md
+
+
+def flush() -> None:
+    if _client is not None:
+        with contextlib.suppress(Exception):
+            _client.flush()
