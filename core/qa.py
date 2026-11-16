@@ -29,16 +29,20 @@ class QAService:
         verifier: CitationVerifier,
         model: str | None = None,
         min_evidence: int = 1,
+        min_score: float = 0.0,
     ) -> None:
         self._llm = llm
         self._retriever = retriever
         self._verifier = verifier
         self._model = model
         self._min_evidence = min_evidence
+        self._min_score = min_score
 
     async def _retrieve(self, question: str, filters: dict) -> dict[str, Evidence]:
         intent = classify_rule(question)
         hits = await self._retriever.retrieve(Query(text=question, intent=intent, filters=filters))
+        # 低于分数阈值的证据视为不相关（证据不足 → 拒答，不编造）
+        hits = [h for h in hits if h.score > self._min_score]
         return {eid: ev for eid, ev in enumerate_evidence(hits)}
 
     async def answer(self, question: str, *, filters: dict | None = None) -> QAResult:
