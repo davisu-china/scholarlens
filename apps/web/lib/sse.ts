@@ -21,12 +21,16 @@ export async function* streamSSE(
     buf = chunks.pop() ?? "";
     for (const chunk of chunks) {
       let event = "message";
-      let data = "";
+      const dataLines: string[] = [];
       for (const line of chunk.split("\n")) {
-        if (line.startsWith("event:")) event = line.slice(6).trim();
-        else if (line.startsWith("data:")) data += line.slice(5).trim();
+        if (line.startsWith("event:")) {
+          event = line.slice(6).trim();
+        } else if (line.startsWith("data:")) {
+          // 按 SSE 规范仅去掉冒号后的一个前导空格，保留 token 内的空白
+          dataLines.push(line.slice(5).replace(/^ /, ""));
+        }
       }
-      if (data) yield { event, data };
+      if (dataLines.length) yield { event, data: dataLines.join("\n") };
     }
   }
 }

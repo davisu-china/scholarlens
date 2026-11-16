@@ -50,3 +50,4 @@ node_modules/
 .next/
 next-env.d.ts
 *.tsbuildinfo
+apps/web/node_modules/
