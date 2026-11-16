@@ -44,3 +44,9 @@ Thumbs.db
 .ruff_cache/
 htmlcov/
 .coverage
+
+# Node / Next.js (apps/web)
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
