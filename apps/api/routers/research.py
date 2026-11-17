@@ -46,7 +46,9 @@ async def research(
         acc = usage.start()
         obs.set_context(user_id=user, feature="research")
         with obs.span("research-request", req.question):
-            result = await c.coordinator.run(req.question, approved_plan=req.approved_plan, model=req.model)
+            filters = {} if req.collection is None else {"collection": req.collection}
+            result = await c.coordinator.run(req.question, approved_plan=req.approved_plan,
+                                             model=req.model, filters=filters)
         for step in result.trace:
             yield {"event": step.kind, "data": json.dumps({"detail": step.detail, **step.data}, ensure_ascii=False)}
         yield {
@@ -57,6 +59,7 @@ async def research(
                     "trust": result.answer.trust,
                     "claims": [cl.model_dump() for cl in result.answer.claims],
                     "coverage": result.coverage,
+                    "evidence": {eid: ev.model_dump() for eid, ev in result.evidence.items()},
                 },
                 ensure_ascii=False,
             ),
@@ -69,6 +72,7 @@ async def research(
 class PlanRequest(BaseModel):
     question: str
     model: str | None = None
+    collection: str | None = None
 
 
 @router.post("/plan")
@@ -87,7 +91,8 @@ async def make_plan(
     except QuotaExceeded as e:
         raise HTTPException(429, str(e)) from e
     thread_id = uuid.uuid4().hex
-    plan = await runner.start(req.question, thread_id, model=req.model)
+    filters = {} if req.collection is None else {"collection": req.collection}
+    plan = await runner.start(req.question, thread_id, model=req.model, filters=filters)
     return {"thread_id": thread_id, "plan": plan}
 
 
@@ -114,6 +119,7 @@ async def resume(
         yield {"event": "answer", "data": json.dumps({
             "answer": result.answer.answer, "trust": result.answer.trust,
             "claims": [cl.model_dump() for cl in result.answer.claims], "coverage": result.coverage,
+            "evidence": {eid: ev.model_dump() for eid, ev in result.evidence.items()},
         }, ensure_ascii=False)}
         await billing.record(user, ACTION_RESEARCH, model_id=None, cost_cny=acc.total_cost_cny)
 

@@ -42,6 +42,7 @@ class ResearchResult:
     coverage: float
     rounds: int
     trace: list[TraceStep] = field(default_factory=list)
+    evidence: dict[str, Evidence] = field(default_factory=dict)   # eid -> 证据，供前端引用角标溯源
 
 
 class ResearchCoordinator:
@@ -72,12 +73,12 @@ class ResearchCoordinator:
         )
         return [item.text for item in plan.subquestions]
 
-    async def _research(self, queries: list[str]) -> list[Evidence]:
+    async def _research(self, queries: list[str], filters: dict | None = None) -> list[Evidence]:
         """对一批（子）问题检索，合并去重证据。"""
         collected: dict[str, Evidence] = {}
         for q in queries:
             intent = classify_rule(q)
-            hits = await self._retriever.retrieve(Query(text=q, intent=intent))
+            hits = await self._retriever.retrieve(Query(text=q, intent=intent, filters=filters or {}))
             for ev in hits:
                 collected.setdefault(ev.id, ev)
         return list(collected.values())
@@ -98,7 +99,8 @@ class ResearchCoordinator:
         return overall.coverage, missing
 
     async def run(
-        self, question: str, *, approved_plan: list[str] | None = None, model: str | None = None
+        self, question: str, *, approved_plan: list[str] | None = None, model: str | None = None,
+        filters: dict | None = None,
     ) -> ResearchResult:
         """model：用户选择的强模型 id（覆盖 plan/write）；反思/改写仍用小模型。"""
         trace: list[TraceStep] = []
@@ -113,7 +115,7 @@ class ResearchCoordinator:
 
         while rounds < self._max_rounds:
             rounds += 1
-            new_ev = await self._research(queries)
+            new_ev = await self._research(queries, filters)
             for ev in new_ev:
                 evidence.setdefault(ev.id, ev)
             trace.append(TraceStep("research", f"第 {rounds} 轮召回 {len(new_ev)} 条证据",
@@ -142,7 +144,7 @@ class ResearchCoordinator:
 
         return ResearchResult(
             question=question, plan=subquestions, answer=verified,
-            coverage=coverage, rounds=rounds, trace=trace,
+            coverage=coverage, rounds=rounds, trace=trace, evidence=evidence_map,
         )
 
 

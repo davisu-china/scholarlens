@@ -33,6 +33,7 @@ from core.llm import prompts
 class GraphState(TypedDict, total=False):
     question: str
     model: str | None
+    filters: dict
     plan: list[str]
     evidence: Annotated[list[Evidence], operator.add]   # 各轮证据自动合并
     coverage: float
@@ -57,7 +58,7 @@ def build_research_graph(coordinator: ResearchCoordinator, *, checkpointer=None)
 
     async def researcher(state: GraphState) -> dict:
         queries = state.get("missing") or state["plan"]   # 补检索只查未覆盖项
-        new_ev = await c._research(queries)
+        new_ev = await c._research(queries, state.get("filters") or {})
         rnd = state.get("rounds", 0) + 1
         return {
             "evidence": new_ev,
@@ -121,6 +122,8 @@ def state_to_result(state: GraphState) -> ResearchResult:
         coverage=state.get("coverage", 0.0),
         rounds=state.get("rounds", 0),
         trace=state.get("trace", []),
+        # 与 writer 相同的顺序重新编号，保证 eid 与正文里的 [eid] 一致
+        evidence=dict(enumerate_evidence(state.get("evidence", []))),
     )
 
 
@@ -139,9 +142,11 @@ class ResearchGraphRunner:
     def _cfg(thread_id: str) -> dict:
         return {"configurable": {"thread_id": thread_id}}
 
-    async def start(self, question: str, thread_id: str, *, model: str | None = None) -> list[str]:
+    async def start(self, question: str, thread_id: str, *, model: str | None = None,
+                    filters: dict | None = None) -> list[str]:
         """跑到 planner 后中断，返回生成的计划。"""
-        await self._app.ainvoke({"question": question, "model": model}, self._cfg(thread_id))
+        await self._app.ainvoke({"question": question, "model": model, "filters": filters or {}},
+                               self._cfg(thread_id))
         snap = await self._app.aget_state(self._cfg(thread_id))
         return snap.values.get("plan", [])
 
