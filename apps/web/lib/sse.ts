@@ -1,17 +1,14 @@
 /**
  * 通用 SSE 读取器：用 fetch + ReadableStream 解析 text/event-stream。
- * 比原生 EventSource 灵活（可带 POST body、JWT header）。
+ * 比原生 EventSource 灵活（可带 POST body、JWT header、AbortSignal）。
  */
-import { authFetch } from "./auth";
+import { authFetch, readError } from "./auth";
 
 export type SSEEvent = { event: string; data: string };
 
-export async function* streamSSE(
-  url: string,
-  init?: RequestInit,
-): AsyncGenerator<SSEEvent> {
+export async function* streamSSE(url: string, init?: RequestInit): AsyncGenerator<SSEEvent> {
   const res = await authFetch(url, { ...init, headers: { "Content-Type": "application/json", ...init?.headers } });
-  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+  if (!res.ok) throw await readError(res);
   if (!res.body) throw new Error("no response body");
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
@@ -19,7 +16,7 @@ export async function* streamSSE(
   while (true) {
     const { value, done } = await reader.read();
     if (done) break;
-    buf += decoder.decode(value, { stream: true });
+    buf += decoder.decode(value, { stream: true }).replace(/\r\n/g, "\n");
     const chunks = buf.split("\n\n");
     buf = chunks.pop() ?? "";
     for (const chunk of chunks) {

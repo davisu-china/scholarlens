@@ -1,81 +1,107 @@
 import { streamSSE } from "./sse";
-import { authFetch } from "./auth";
-import type { QADone, ResearchAnswer, TraceEvent } from "./types";
+import { ApiError, authFetch, readError } from "./auth";
+import type {
+  BillingOverview, Collection, ModelInfo, Paper, Plan, QADone, ResearchAnswer, TraceEvent,
+} from "./types";
 
-/** 快速问答：回调逐 token，结束时回调一次 done(含引用与证据)。 */
+async function getJSON<T>(url: string, init?: RequestInit): Promise<T> {
+  const r = await authFetch(url, init);
+  if (!r.ok) throw await readError(r);
+  return r.json() as Promise<T>;
+}
+
+const post = (body: unknown): RequestInit => ({
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body),
+});
+
+type Scope = { collection?: string | null; model?: string | null; signal?: AbortSignal };
+
+/** 快速问答：回调逐 token，结束时回调一次 done（含引用校验与证据）。 */
 export async function askQuestion(
   question: string,
-  opts: { collection?: string; model?: string | null; onToken: (t: string) => void; onDone: (d: QADone) => void },
+  opts: Scope & { onToken: (t: string) => void; onDone: (d: QADone) => void },
 ): Promise<void> {
-  for await (const ev of streamSSE("/api/query", {
-    method: "POST",
-    body: JSON.stringify({ question, collection: opts.collection, model: opts.model }),
-  })) {
+  const body = { question, collection: opts.collection ?? undefined, model: opts.model ?? undefined };
+  for await (const ev of streamSSE("/api/query", { ...post(body), signal: opts.signal })) {
     if (ev.event === "token") opts.onToken(ev.data);
     else if (ev.event === "done") opts.onDone(JSON.parse(ev.data) as QADone);
   }
 }
 
-/** 深度研究：回调每个 trace 步骤，结束时回调最终答案。 */
-export async function deepResearch(
-  question: string,
-  opts: { approvedPlan?: string[]; model?: string | null; onTrace: (e: TraceEvent) => void; onAnswer: (a: ResearchAnswer) => void },
+/** 深度研究第一步：生成研究计划，等待用户确认。 */
+export function planResearch(question: string, opts: Scope) {
+  const body = { question, collection: opts.collection ?? undefined, model: opts.model ?? undefined };
+  return getJSON<{ thread_id: string; plan: string[] }>("/api/research/plan", { ...post(body), signal: opts.signal });
+}
+
+/** 深度研究第二步：按确认后的计划执行，推送过程与最终综述。 */
+export async function resumeResearch(
+  threadId: string,
+  approvedPlan: string[],
+  opts: { signal?: AbortSignal; onTrace: (e: TraceEvent) => void; onAnswer: (a: ResearchAnswer) => void },
 ): Promise<void> {
-  for await (const ev of streamSSE("/api/research", {
-    method: "POST",
-    body: JSON.stringify({ question, approved_plan: opts.approvedPlan, model: opts.model }),
-  })) {
-    if (ev.event === "answer") opts.onAnswer(JSON.parse(ev.data) as ResearchAnswer);
-    else opts.onTrace({ kind: ev.event, data: JSON.parse(ev.data || "{}") });
+  const init = { ...post({ thread_id: threadId, approved_plan: approvedPlan }), signal: opts.signal };
+  for await (const ev of streamSSE("/api/research/resume", init)) {
+    if (ev.event === "answer") {
+      opts.onAnswer(JSON.parse(ev.data) as ResearchAnswer);
+    } else {
+      const data = JSON.parse(ev.data || "{}") as Record<string, unknown>;
+      opts.onTrace({ kind: ev.event, detail: String(data.detail ?? ""), data });
+    }
   }
 }
 
-export async function fetchCitationGraph(paperId: string) {
-  const r = await fetch(`/api/papers/${paperId}/citations`);
-  return r.json() as Promise<{ nodes: { id: string; seed?: boolean }[]; edges: { source: string; target: string }[] }>;
+export const fetchModels = () =>
+  getJSON<{ default: string | null; plan: string; models: ModelInfo[] }>("/api/models");
+
+export const fetchBilling = () => getJSON<BillingOverview>("/api/billing/overview");
+
+export const fetchPlans = () => getJSON<Plan[]>("/api/billing/plans");
+
+export async function upgradePlan(planId: string): Promise<void> {
+  const order = await getJSON<{ order_id: string }>("/api/billing/checkout", post({ plan_id: planId }));
+  // 目前后端是模拟支付：下单后直接触发一次支付成功回调。接入真实网关后改为跳转 pay_url。
+  const r = await fetch(`/api/billing/simulate-payment/${order.order_id}`, { method: "POST" });
+  if (!r.ok) throw await readError(r);
 }
 
-export async function fetchModels() {
-  const r = await authFetch("/api/models");
-  return r.json() as Promise<{ default: string | null; plan: string; models: { id: string; label: string; description: string; tier: string; locked: boolean }[] }>;
-}
+export const fetchCollections = () => getJSON<Collection[]>("/api/papers/collections");
 
-export async function fetchBilling() {
-  const r = await authFetch("/api/billing/overview");
-  return r.json() as Promise<{
-    plan: { id: string; name: string; price_cny_per_month: number };
-    quotas: { action: string; window: string; limit: number; used: number; remaining: number }[];
-    usage: { by_action: Record<string, number>; by_model: Record<string, number>; cost_cny: number };
-  }>;
-}
+export const fetchPapers = () => getJSON<Paper[]>("/api/papers");
 
-export async function upgradePlan(planId: string) {
-  const order = await (await authFetch("/api/billing/checkout", {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ plan_id: planId }),
-  })).json();
-  // 雏形：直接触发模拟支付；生产跳转 order.pay_url 由网关回调
-  await fetch(`/api/billing/simulate-payment/${order.order_id}`, { method: "POST" });
-}
+export const fetchCitationGraph = (paperId: string) =>
+  getJSON<{ nodes: { id: string; seed?: boolean }[]; edges: { source: string; target: string }[] }>(
+    `/api/papers/${encodeURIComponent(paperId)}/citations`,
+  );
 
-export async function downgradeFree() {
-  // 免费套餐无需支付，雏形下单接口会拒绝；降级在生产由订阅到期处理。
-  // 这里演示用：直接下单 pro 的反向——省略，UI 只在付费态提供“查看用量”。
-}
-
-export async function fetchCollections() {
-  const r = await authFetch("/api/papers/collections");
-  return r.json() as Promise<{ name: string; count: number }[]>;
-}
-
-export async function fetchPapers(collection?: string) {
-  const q = collection ? `?collection=${encodeURIComponent(collection)}` : "";
-  const r = await authFetch(`/api/papers${q}`);
-  return r.json() as Promise<{ paper_id: string; title: string; collection: string; n_chunks: number; year: number | null }[]>;
-}
-
-// PDF 带鉴权取回后生成临时 URL（react-pdf 用）
+/** PDF 带鉴权取回后生成临时 URL（react-pdf 用）。调用方负责 revoke。 */
 export async function fetchPdfUrl(paperId: string): Promise<string> {
-  const r = await authFetch(`/api/papers/${paperId}/pdf`);
-  if (!r.ok) throw new Error("pdf not found");
+  const r = await authFetch(`/api/papers/${encodeURIComponent(paperId)}/pdf`);
+  if (!r.ok) throw new ApiError(r.status, r.status === 404 ? "这篇论文的原文文件不在库里" : "原文加载失败");
   return URL.createObjectURL(await r.blob());
+}
+
+/** 上传并解析一篇 PDF。一次一个文件，便于逐个显示状态。 */
+export async function uploadPaper(file: File, collection: string): Promise<Paper> {
+  const form = new FormData();
+  form.append("files", file);
+  form.append("collection", collection);
+  const r = await authFetch("/api/ingest/upload", { method: "POST", body: form });
+  if (!r.ok) throw await readError(r);
+  const [p] = (await r.json()) as Paper[];
+  return p;
+}
+
+/** 把错误转成给用户看的说明。 */
+export function describeError(e: unknown): { message: string; status: number } {
+  if (e instanceof ApiError) {
+    if (e.status === 429) return { status: 429, message: e.message || "当前套餐的额度已用完" };
+    if (e.status === 403) return { status: 403, message: e.message || "当前套餐不包含所选模型" };
+    if (e.status === 502 || e.status === 504) return { status: e.status, message: "服务暂时没有响应，请稍后重试" };
+    if (e.status >= 500) return { status: e.status, message: e.message.length < 200 ? e.message : "服务出错了，请稍后重试" };
+    return { status: e.status, message: e.message };
+  }
+  return { status: 0, message: "连接中断了，请重试" };
 }

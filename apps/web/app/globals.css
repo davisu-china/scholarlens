@@ -2,6 +2,84 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: dark; }
+:root {
+  color-scheme: light;
+  --bg: 245 245 247;
+  --surface: 255 255 255;
+  --surface-2: 248 248 250;
+  --line: 226 226 231;
+  --fg: 29 29 31;
+  --fg-2: 99 99 105;
+  --fg-3: 142 142 147;
+  --accent: 0 102 230;
+  --accent-soft: 232 241 255;
+  --ok: 26 127 55;
+  --warn: 178 80 0;
+  --bad: 205 28 24;
+  --mark: 255 204 0;
+}
+.dark {
+  color-scheme: dark;
+  --bg: 8 13 23;
+  --surface: 15 22 36;
+  --surface-2: 21 30 47;
+  --line: 36 46 66;
+  --fg: 240 242 247;
+  --fg-2: 165 173 190;
+  --fg-3: 112 121 140;
+  --accent: 56 142 255;
+  --accent-soft: 20 39 71;
+  --ok: 48 209 88;
+  --warn: 255 179 64;
+  --bad: 255 105 97;
+  --mark: 255 214 10;
+}
+
 html, body { height: 100%; }
-body { @apply bg-bg text-[#e7e9ef] antialiased; }
+body { @apply bg-bg font-sans text-fg antialiased; font-size: 14px; }
+* { @apply border-line; }
+@layer base {
+  :focus-visible { outline: 2px solid rgb(var(--accent) / 0.55); outline-offset: 2px; }
+}
+::selection { background: rgb(var(--accent) / 0.22); }
+
+/* 细滚动条 */
+* { scrollbar-width: thin; scrollbar-color: rgb(var(--fg-3) / 0.35) transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: rgb(var(--fg-3) / 0.3); border-radius: 8px; }
+
+/* 回答正文排版 */
+.prose-answer { font-size: 15px; line-height: 1.8; color: rgb(var(--fg)); overflow-wrap: anywhere; }
+.prose-answer > *:first-child { margin-top: 0; }
+.prose-answer > *:last-child { margin-bottom: 0; }
+.prose-answer p { margin: 0.7em 0; }
+.prose-answer h1, .prose-answer h2, .prose-answer h3, .prose-answer h4 { font-weight: 650; line-height: 1.35; margin: 1.4em 0 0.5em; letter-spacing: -0.01em; }
+.prose-answer h1 { font-size: 1.35em; }
+.prose-answer h2 { font-size: 1.2em; }
+.prose-answer h3, .prose-answer h4 { font-size: 1.05em; }
+.prose-answer ul, .prose-answer ol { margin: 0.6em 0; padding-left: 1.4em; }
+.prose-answer ul { list-style: disc; }
+.prose-answer ol { list-style: decimal; }
+.prose-answer li { margin: 0.25em 0; }
+.prose-answer li::marker { color: rgb(var(--fg-3)); }
+.prose-answer strong { font-weight: 650; }
+.prose-answer blockquote { border-left: 3px solid rgb(var(--line)); padding-left: 0.9em; color: rgb(var(--fg-2)); margin: 0.8em 0; }
+.prose-answer code { font-family: theme("fontFamily.mono"); font-size: 0.88em; background: rgb(var(--fg) / 0.06); padding: 0.1em 0.35em; border-radius: 5px; }
+.prose-answer pre { background: rgb(var(--fg) / 0.05); border-radius: 10px; padding: 0.9em 1em; overflow-x: auto; margin: 0.9em 0; }
+.prose-answer pre code { background: none; padding: 0; }
+.prose-answer hr { border-color: rgb(var(--line)); margin: 1.4em 0; }
+.prose-answer .table-wrap { overflow-x: auto; margin: 1em 0; border: 1px solid rgb(var(--line)); border-radius: 10px; }
+.prose-answer table { width: 100%; border-collapse: collapse; font-size: 0.92em; }
+.prose-answer th { text-align: left; font-weight: 600; background: rgb(var(--surface-2)); color: rgb(var(--fg-2)); white-space: nowrap; }
+.prose-answer th, .prose-answer td { padding: 0.5em 0.8em; border-bottom: 1px solid rgb(var(--line)); vertical-align: top; }
+.prose-answer tr:last-child td { border-bottom: 0; }
+.prose-answer .katex-display { overflow-x: auto; overflow-y: hidden; padding: 0.3em 0; }
+
+.prose-answer.is-streaming > *:last-child::after, .caret::after { content: ""; display: inline-block; width: 7px; height: 1.05em; margin-left: 2px; vertical-align: text-bottom; background: rgb(var(--accent)); border-radius: 1px; animation: blink 1s step-end infinite; }
+
+/* react-pdf：页面画布自适应容器 */
+.react-pdf__Page__canvas { display: block; max-width: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
