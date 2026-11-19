@@ -39,6 +39,7 @@ class Chunk(BaseModel):
 
     id: str
     paper_id: str
+    collection: str = ""      # 所属文献库，检索时按它过滤
     level: Granularity
     text: str
     context_prefix: str = ""

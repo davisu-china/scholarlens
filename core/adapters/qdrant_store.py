@@ -64,7 +64,7 @@ class QdrantVectorStore:
                         "level": int(chunk.level),
                         "text": chunk.text,
                         "section_path": chunk.section_path,
-                        "collection": chunk.provenance.paper_id,  # 可换为真实 collection 字段
+                        "collection": chunk.collection or "default",
                         "provenance": chunk.provenance.model_dump(),
                     },
                 )

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from core.config import settings
 from core.index.chunker import MultiGranularityChunker
 from core.index.table_extractor import TableExtractor
 from core.ingest.schema import PaperIR
@@ -37,22 +38,35 @@ class Indexer:
         table_store: TableStore | None = None,
         graph_store: GraphStore | None = None,
         llm: LLMClient | None = None,
+        context_model: str | None = None,
     ) -> None:
         self._embedder = embedder
         self._vs = vector_store
-        self._chunker = chunker or MultiGranularityChunker(llm)
+        self._chunker = chunker or MultiGranularityChunker(
+            llm if settings.contextual_chunk else None,
+            concurrency=settings.contextual_concurrency,
+            timeout=settings.contextual_timeout,
+            model=context_model,
+        )
         self._table_extractor = table_extractor
         self._table_store = table_store
         self._graph_store = graph_store
 
-    async def index_paper(self, paper: PaperIR) -> IndexReport:
+    async def index_paper(
+        self, paper: PaperIR, *, collection: str = "default"
+    ) -> IndexReport:
         # 1. 切分 + embedding + 写向量库
         chunks = await self._chunker.chunk(paper)
+        collection = collection.strip() or "default"
+        for c in chunks:
+            c.collection = collection
         vectors = await self._embedder.embed([c.indexed_text for c in chunks])
         await self._vs.upsert(chunks, vectors)
 
         # 2. 表格 → 四元组 → 表格库
         n_rows = 0
+        if self._table_store is not None:
+            await self._table_store.delete_by_paper(paper.paper_id)
         if self._table_extractor and self._table_store:
             for block in paper.blocks:
                 if block.type == "table":

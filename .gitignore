@@ -53,3 +53,12 @@ next-env.d.ts
 apps/web/node_modules/
 /scholarlens.env.txt
 apps/web/public/pdf.worker.min.mjs
+
+# Local diagnostics / test artifacts (kept on disk, not committed)
+diag_llm.py
+diag_prefix.py
+q.json
+package-lock.json.bak
+paper.pdf
+paper2.pdf
+!.env.example

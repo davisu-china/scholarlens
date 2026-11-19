@@ -90,6 +90,7 @@ def build_container(
         table_store=table_store,
         graph_store=graph_store,
         llm=llm,
+        context_model=small_model,
     )
     qa = QAService(llm=llm, retriever=retriever, verifier=verifier, model=strong_model)
     coordinator = ResearchCoordinator(

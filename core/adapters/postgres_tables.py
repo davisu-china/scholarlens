@@ -62,6 +62,15 @@ class PostgresTableStore:
                 ],
             )
 
+    async def delete_by_paper(self, paper_id: str) -> None:
+        from sqlalchemy import text
+
+        async with self._ensure().begin() as conn:
+            await conn.execute(
+                text("DELETE FROM result_rows WHERE paper_id = :paper_id"),
+                {"paper_id": paper_id},
+            )
+
     async def query(self, q: Query) -> list[Evidence]:
         """简单实现：按 method/dataset/metric 的关键词 ILIKE 匹配。
 

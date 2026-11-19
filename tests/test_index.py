@@ -58,3 +58,38 @@ async def test_indexer_builds_citation_graph(paper):
     report = await indexer.index_paper(paper)
     assert report.n_citations == 1
     assert await g.expand(["p1"], hops=1) == ["p-chen"]
+
+
+async def test_indexer_filters_by_collection(paper):
+    emb, vs = FakeEmbedder(), FakeVectorStore()
+    indexer = Indexer(embedder=emb, vector_store=vs)
+    await indexer.index_paper(paper, collection="lib-a")
+
+    retriever = HybridRetriever(embedder=emb, vector_store=vs, reranker=FakeReranker())
+
+    hit = await retriever.retrieve(
+        Query(text="frequency interpolation", filters={"collection": "lib-a"})
+    )
+    miss = await retriever.retrieve(
+        Query(text="frequency interpolation", filters={"collection": "lib-b"})
+    )
+    assert hit
+    assert miss == []
+
+
+async def test_reindex_replaces_table_rows(paper):
+    store = FakeTableStore()
+    llm = FakeLLM(structured_responses=[
+        _RawRows(rows=[_RawRow(method="YaRN", dataset="128K", metric="PPL", value=3.2)]),
+        _RawRows(rows=[_RawRow(method="YaRN", dataset="128K", metric="PPL", value=3.2)]),
+    ])
+    indexer = Indexer(
+        embedder=FakeEmbedder(),
+        vector_store=FakeVectorStore(),
+        table_extractor=TableExtractor(llm),
+        table_store=store,
+    )
+
+    await indexer.index_paper(paper)
+    await indexer.index_paper(paper)
+    assert len(store.rows) == 1
