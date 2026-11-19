@@ -55,10 +55,12 @@ def _sparse_dot(a: dict[int, float], b: dict[int, float]) -> float:
 
 
 def _match_filters(chunk: Chunk, filters: dict) -> bool:
-    """fake 只支持 paper_id / collection 两种过滤键，够测试用。"""
+    """fake 支持 paper_id / paper_ids / collection 三类过滤键。"""
     if "paper_id" in filters and chunk.paper_id != filters["paper_id"]:
         return False
     if "paper_ids" in filters and chunk.paper_id not in filters["paper_ids"]:
+        return False
+    if "collection" in filters and chunk.collection != filters["collection"]:
         return False
     return True
 
@@ -215,6 +217,12 @@ class FakeTableStore:
 
     async def insert_rows(self, rows: list[ResultRow]) -> None:
         self.rows.extend(rows)
+
+    async def delete_by_paper(self, paper_id: str) -> None:
+        self.rows = [
+            r for r in self.rows
+            if (r.source.paper_id if r.source else None) != paper_id
+        ]
 
     async def query(self, q: Query) -> list[Evidence]:
         hits = []

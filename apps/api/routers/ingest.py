@@ -42,7 +42,7 @@ async def upload(
             await billing.check_quota(user, ACTION_INGEST_PAGES, units=pages)
         except QuotaExceeded as e:
             raise HTTPException(429, str(e)) from e
-        report = await c.indexer.index_paper(paper)
+        report = await c.indexer.index_paper(paper, collection=collection)
         await c.blob.put(f"pdf/{paper.paper_id}.pdf", data)                 # 存原件供溯源阅读
         await c.registry.add(PaperMeta(paper_id=paper.paper_id, title=paper.title,
                                        collection=collection, n_chunks=report.n_chunks, year=paper.year))

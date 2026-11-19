@@ -7,16 +7,21 @@
   L3 Element —— 表格 / 公式 / 图注（数值与公式问答）
 
 Contextual Chunking：入库前为每个 L2 chunk 生成 50–100 token 的上下文前缀，
-解决「chunk 缺主语无法被检索」的问题。前缀生成通过 LLM port，可关闭。
+解决「chunk 缺主语无法被检索」的问题。前缀生成通过 LLM port，可关闭；
+生成时按 concurrency 限并发，单个 chunk 失败或超时不影响其他 chunk。
 """
 
 from __future__ import annotations
 
+import asyncio
+import logging
 from collections import defaultdict
 
 from core.domain import Chunk, Granularity
 from core.ingest.schema import Block, PaperIR, Provenance
 from core.ports import LLMClient
+
+logger = logging.getLogger(__name__)
 
 
 def estimate_tokens(text: str) -> int:
@@ -60,9 +65,20 @@ _CONTEXT_PROMPT = (
 
 
 class MultiGranularityChunker:
-    def __init__(self, llm: LLMClient | None = None, *, chunk_tokens: int = 400) -> None:
+    def __init__(
+        self,
+        llm: LLMClient | None = None,
+        *,
+        chunk_tokens: int = 400,
+        concurrency: int = 5,
+        timeout: float = 30.0,
+        model: str | None = None,
+    ) -> None:
         self._llm = llm
         self._chunk_tokens = chunk_tokens
+        self._concurrency = max(1, concurrency)
+        self._timeout = timeout
+        self._model = model
 
     def _paper_chunk(self, paper: PaperIR) -> Chunk:
         text = f"{paper.title}\n\n{paper.abstract}".strip()
@@ -128,17 +144,30 @@ class MultiGranularityChunker:
         return out
 
     async def _add_context(self, paper: PaperIR, chunks: list[Chunk]) -> None:
-        """为 L2 chunk 生成上下文前缀（就地修改）。无 LLM 时跳过。"""
+        """为 L2 chunk 并发生成上下文前缀（就地修改）。无 LLM 时跳过。"""
         if self._llm is None:
             return
-        for c in chunks:
-            if c.level != Granularity.CHUNK:
-                continue
+
+        targets = [c for c in chunks if c.level == Granularity.CHUNK]
+        sem = asyncio.Semaphore(self._concurrency)
+
+        async def fill(c: Chunk) -> None:
             section = "（" + " / ".join(c.section_path) + "）" if c.section_path else ""
-            prefix = await self._llm.complete(
-                _CONTEXT_PROMPT.format(title=paper.title, section=section, chunk=c.text)
+            prompt = _CONTEXT_PROMPT.format(
+                title=paper.title, section=section, chunk=c.text
             )
+            async with sem:
+                try:
+                    prefix = await asyncio.wait_for(
+                        self._llm.complete(prompt, model=self._model),
+                        timeout=self._timeout,
+                    )
+                except Exception as exc:
+                    logger.warning("context prefix failed for %s: %s", c.id, exc)
+                    return
             c.context_prefix = prefix.strip()
+
+        await asyncio.gather(*(fill(c) for c in targets))
 
     async def chunk(self, paper: PaperIR) -> list[Chunk]:
         chunks = [self._paper_chunk(paper), *self._section_chunks(paper), *self._leaf_chunks(paper)]

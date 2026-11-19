@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     use_db: bool = False      # True=用 Postgres 存储，False=内存（雏形/测试）
     # 缓存
     cache_enabled: bool = False
+    # Contextual Chunking：入库时为每个 L2 段落生成上下文前缀
+    contextual_chunk: bool = True
+    contextual_concurrency: int = 5
+    contextual_timeout: float = 30.0
     qdrant_url: str = "http://localhost:6333"
     neo4j_uri: str = "bolt://localhost:7687"
     neo4j_user: str = "neo4j"
